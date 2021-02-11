@@ -171,6 +171,7 @@ const getConvbyId = async (req, res, next) => {
 
 const postmsg = async (req, res, next) => {
   console.log("s");
+
   const convId = req.params.convid;
   const userId = req.params.uid;
   const myconv = DUMMY_CONV.find((conv) => conv.id == convId);
