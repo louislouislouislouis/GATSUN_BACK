@@ -1,7 +1,18 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const SSE = require("express-sse");
+const cors = require('cors');
+const SSEClient = require('./SSEClient');
+const SSEManager = require('./ssemanager')
 const app = express();
+const crypto = require('crypto'); 
 
+app.use(cors());
+const sseManager = new SSEManager();
+/* On enregistre notre instance dans notre application Express, il sera lors possible
+   de récupérer celle-ci via la méthode "get"
+*/
+app.set('sseManager', sseManager);
 const DUMMY_USER = [
   {
     name: "LOMBARD",
@@ -159,7 +170,7 @@ const getUserbyId = async (req, res, next) => {
 };
 const getConvbyId = async (req, res, next) => {
   const userId = req.params.convid;
-  console.log("zz");
+  //console.log("zz");
   const myconv = DUMMY_CONV.find((conv) => conv.id == userId);
   if (myconv) {
     res.json(myconv);
@@ -168,7 +179,72 @@ const getConvbyId = async (req, res, next) => {
     res.json({ message: "Conv doesn not exist" });
   }
 };
+const getConvsbyUserId = async (req, res, next) => {
+  const userId = req.params.uid;
+  const userConvs = DUMMY_USER.find((user) => user.id == userId).conversation;
+  let response=[]
+  for (const conv of userConvs) {
+    response.push(DUMMY_CONV.find((conve) => conve.id == conv))
+  }
+  console.log(response);
+  //const myconv = DUMMY_CONV.find((conv) => DUMMY_USER. conv.id == userId);
+  if (response) {
+    res.json(response);
+  } else {
+    res.status(404);
+    res.json({ message: "This user has not conv " });
+  }
+};
+const getPartsbyConvId = async (req, res, next) => {
+  const convId = req.params.convId;
+  const userParts = DUMMY_CONV.find((conv) => conv.id == convId).participants;
+  //console.log("zz");
+  //const myconv = DUMMY_CONV.find((conv) => DUMMY_USER. conv.id == userId);
+  if (userParts) {
+    res.json(userParts);
+  } else {
+    res.status(404);
+    res.json({ message: "This conv has not conv " });
+  }
+};
+const testlive= async (req, res, next) => {
+  const client = new SSEClient(res);
+  
+  /* On initialise la connexion */
+  client.initialize();
 
+  /* On attends 5 secondes ... */
+  setTimeout(() => {
+    /* ... et on envoie un message au client */
+    client.send({ id: Date.now(), type: 'message', data: 'hello' });
+  }, 5000);
+
+}
+const testlive2=async (req, res, next) => {
+  const id = req.params.uid+req.params.convId;
+  console.log(req)
+  /* On ouvre la connexion avec notre client */
+  sseManager.open(id, res);
+
+  /* On envoie le nombre de clients connectés à l'ensemble des clients */
+  sseManager.broadcast({
+    id: Date.now(),
+    type: 'count',
+    data: sseManager.count()
+  });
+
+  /* en cas de fermeture de la connexion, on supprime le client de notre manager */
+  req.on('close', () => {
+/* En cas de deconnexion on supprime le client de notre manager */
+    sseManager.delete(id);
+    /* On envoie le nouveau nombre de clients connectés */
+    sseManager.broadcast({
+      id: Date.now(),
+      type: 'count',
+      data: sseManager.count()
+    });
+  });
+}
 const postmsg = async (req, res, next) => {
   console.log("s");
 
@@ -176,6 +252,8 @@ const postmsg = async (req, res, next) => {
   const userId = req.params.uid;
   const myconv = DUMMY_CONV.find((conv) => conv.id == convId);
   
+  const parts= myconv.participants.filter((part)=>part!=userId);
+  console.log(parts)
   if (myconv) {
     myconv.messages.push({
       from: userId,
@@ -183,23 +261,60 @@ const postmsg = async (req, res, next) => {
       body: req.body.value,
     });
     //console.log(myconv);
+    parts.forEach(part => {
+      /* console.log(`/${part}/${convId}`)
+      router4.get(`/${part}/${convId}`, sse.init);
+      sse.send(parts, 'CustomEvent'); */
+      sseManager.unicast(`${part}${convId}`,{
+        id: Date.now(),
+        type: 'message',
+        data: sseManager.count()
+      })
+    });
+    
+    
+
     res.json(myconv);
+    
   } else {
     res.status(404);
     res.json({ message: "Conv doesn not exist" });
   }
 };
+var sse = new SSE(["array", "containing", "initial", "content"]);
 
 const router = express.Router();
 const router2 = express.Router();
 const router3 = express.Router();
+const router4 = express.Router();
+const router5 = express.Router();
+const router6 = express.Router();
+const router7 = express.Router();
+const router8 = express.Router();
 
+
+router8.get("/:convId", getPartsbyConvId);
+router7.get("/:uid", getConvsbyUserId);
 router.get("/:pid", getUserbyId);
 router2.get("/:convid", getConvbyId);
 router3.post("/:convid/:uid", postmsg);
+router5.get("/hello", testlive)
+router6.get("/live/:convId/:uid", testlive2)
+//router4.get("/:uid/:convId", sse.init);
+let count=0;
+/* setInterval(()=>{
+  count++
+  console.log(count);
+  sse.send(count, 'CustomEvent');
+},1000) */
 
 app.use("/api/user/", router);
+app.use("/api/conv/w/", router7);
+app.use("/api/conv/wp/", router8);
 app.use("/api/conv/", router2);
 app.use("/api/conv/", router3);
+app.use("/api/stream/",router4)
+app.use("/stream/", router5)
+app.use("/stream/", router6)
 
 app.listen(process.env.PORT || 5000);
