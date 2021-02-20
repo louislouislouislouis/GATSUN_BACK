@@ -6,6 +6,8 @@ const SSEClient = require('./SSEClient');
 const SSEManager = require('./ssemanager')
 const app = express();
 const crypto = require('crypto'); 
+const jwt = require("jsonwebtoken");
+const HttpError = require("./http-err");
 
 app.use(cors());
 const sseManager = new SSEManager();
@@ -22,6 +24,7 @@ const DUMMY_USER = [
       "Salut! Je m'appelle louis et je suis apprenti torrero en argenine. Je vous partage ma passion à travers ce blog",
     post: ["p1", "p2"],
     likes: ["Voitures", "Vie", "Pepsi"],
+    password:"test1",
     conversation: ["conv1", "conv2"],
     demande: ["d1", "d2"],
     id: "u1",
@@ -38,10 +41,11 @@ const DUMMY_USER = [
       "Lorem ipsum dolor sit amet consectetur, adipisicing elit. Cumque quis dolore cum placeat earum officiis molestiae praesentium consequatur aliquid suscipit tenetur, asperiores vitae pariatur aspernatur modi nemo ipsum culpa porro!",
     post: ["p3", "p4"],
     likes: ["Chat", "Chien", "Poisson"],
+    password:"test2",
     conversation: ["conv1", "conv3"],
     demande: ["d9", "d4"],
     id: "u2",
-    email: "testddddddddd2@test.com",
+    email: "test2@test.com",
     role: "u",
     img:
       "https://pbs.twimg.com/profile_images/966627563228553216/FVNkkIcj_400x400.jpg",
@@ -54,10 +58,11 @@ const DUMMY_USER = [
       "Lorem ipsum dolor sit amet consectetur, adipisicing elit. Cumque quis dolore cum placeat earum officiis molestiae praesentium consequatur aliquid suscipit tenetur, asperiores vitae pariatur aspernatur modi nemo ipsum culpa porro!",
     post: ["p8", "p98"],
     likes: ["Chat", "Chien", "Poisson"],
+    password:"test3",
     conversation: ["conv3", "conv2"],
     demande: ["d9", "d4"],
     id: "u3",
-    email: "testddddddddd2@test.com",
+    email: "test3@test.com",
     role: "u",
     img:
       "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Festival_automobile_international_2016_-_Photocall_-_043_%28cropped%29.jpg/440px-Festival_automobile_international_2016_-_Photocall_-_043_%28cropped%29.jpg",
@@ -220,6 +225,47 @@ const testlive= async (req, res, next) => {
   }, 5000);
 
 }
+const login = async (req, res, next) => {
+  const { email, password } = req.body;
+  const existinguser= DUMMY_USER.find((usr) => usr.email == email);
+
+  if (!existinguser) {
+    const error = new HttpError("Invalid User email credential, could not find user", 401);
+    return next(error);
+  }
+  let isValidPassword = (existinguser.password===password);
+  /* try {
+    isValidPassword = await bcrypt.compare(password, existinguser.password);
+  } catch {
+    const error = new HttpError(
+      "Logging dfailed, plaease try again later",
+      500
+    );
+    return next(error);
+  } */
+  if (!isValidPassword) {
+    const error = new HttpError("Invalid pssword credential", 403);
+    return next(error);
+  }
+
+  let token;
+  try {
+    token = jwt.sign(
+      { userId: existinguser.id, email: existinguser.email },
+      "KEEEY",
+      { expiresIn: "1h" }
+    );
+  } catch (err) {
+    const error = new HttpError("login up failed, please try again later", 500);
+    return next(error);
+  }
+
+  res.status(201).json({
+    userId: existinguser.id,
+    email: existinguser.email,
+    token: token,
+  });
+};
 const testlive2=async (req, res, next) => {
   const id = req.params.uid+req.params.convId;
   console.log(req)
@@ -291,7 +337,7 @@ const router5 = express.Router();
 const router6 = express.Router();
 const router7 = express.Router();
 const router8 = express.Router();
-
+const router11 = express.Router();
 
 router8.get("/:convId", getPartsbyConvId);
 router7.get("/:uid", getConvsbyUserId);
@@ -300,6 +346,8 @@ router2.get("/:convid", getConvbyId);
 router3.post("/:convid/:uid", postmsg);
 router5.get("/hello", testlive)
 router6.get("/live/:convId/:uid", testlive2)
+router11.post("/log", login)
+
 //router4.get("/:uid/:convId", sse.init);
 let count=0;
 /* setInterval(()=>{
@@ -316,5 +364,10 @@ app.use("/api/conv/", router3);
 app.use("/api/stream/",router4)
 app.use("/stream/", router5)
 app.use("/stream/", router6)
-
+app.use("/api/auth", router11);
+app.use((error, req, res, next) => {
+  console.log(error.message)
+  res.status(error.code || 500);
+  res.json({ message: error.message || "An unknow error appears" });
+});
 app.listen(process.env.PORT || 5000);
