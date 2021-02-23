@@ -1,4 +1,4 @@
-const SSEClient = require('./SSEClient');
+const SSEClient = require("./SSEClient");
 
 class SSEManager {
   constructor() {
@@ -64,6 +64,20 @@ class SSEManager {
   broadcast(message) {
     for (const [id] of this.clients) {
       this.unicast(id, message);
+    }
+  }
+  broadcast2(idbegin, message) {
+    for (const [id] of this.clients) {
+      if (id.startsWith(idbegin)) {
+        this.unicast(id, message);
+      }
+    }
+  }
+  delete2(idbegin) {
+    for (const [id] of this.clients) {
+      if (id.startsWith(idbegin)) {
+        this.clients.delete(id);
+      }
     }
   }
 
