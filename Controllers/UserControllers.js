@@ -1,20 +1,7 @@
-const express = require("express");
-const bodyParser = require("body-parser");
+const jwt = require("jsonwebtoken");
+const { validationResult } = require("express-validator");
 
-const convRoutes = require("./Routes/ConvRoutes");
-const userRoutes = require("./Routes/UserRoutes");
-const liveRoutes = require("./Routes/LiveRoutes");
-
-const SSEManager = require("./LiveModel/ssemanager");
-const HttpError = require("./model/http-err");
-
-const app = express();
-app.use(bodyParser.json());
-const sseManager = new SSEManager();
-/* On enregistre notre instance dans notre application Express, il sera lors possible
-   de récupérer celle-ci via la méthode "get"
-*/
-app.set("sseManager", sseManager);
+const HttpError = require("../model/http-err");
 
 const DUMMY_USER = [
   {
@@ -154,71 +141,153 @@ const DUMMY_CONV = [
   },
 ];
 
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
-  );
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE");
-  next();
-});
+const signup = async (req, res, next) => {
+  const errors = validationResult(req);
 
-app.use("/api/conv", convRoutes);
-app.use("/api/user", userRoutes);
-app.use("/api/live", liveRoutes);
-/* 
+  if (!errors.isEmpty()) {
+    console.log(errors);
+    return next(new HttpError("Error input", 422));
+  }
 
+  const { name, firstName, Username, email, password, image } = req.body;
+  const existinguser = DUMMY_USER.find((usr) => usr.email == email);
 
-const router4 = express.Router();
-const router5 = express.Router();
-const router6 = express.Router();
+  if (existinguser) {
+    const error = new HttpError(
+      "Il existe un utilisateur avec cette email",
+      401
+    );
+    return next(error);
+  }
 
-router5.get("/hello", testlive);
-router6.get("/live/:convId/:uid", testlive2);
-router6.delete("/", quitlive);
+  let hashedpassword;
 
-app.use("/api/stream/", router4);
-app.use("/stream/", router5);
-app.use("/stream/", router6);
+  try {
+    hashedpassword = await bcrypt.hash(password, 12);
+  } catch (err) {
+    const error = new HttpError("Could not create user please try again", 500);
+    return next(error);
+  }
 
+  //creation du nouvel user
 
- /* const testlive2 = async (req, res, next) => {
-  const id = req.params.uid + req.params.convId + uuidv4();
-  //console.log("debuttestlive");
-  // On ouvre la connexion avec notre client //
-  sseManager.open(id, res);
-  //console.log(sseManager.clients);
+  const newUser = {
+    name: name,
+    firstname: firstName,
+    username: Username,
+    bio: "",
+    post: [],
+    likes: [],
+    password: hashedpassword,
+    conversation: [],
+    demande: ["d1", "d2"],
+    id: uuidv4(),
+    email: email,
+    role: "usr",
+    img: image,
+  };
 
-  // On envoie le nombre de clients connectés à l'ensemble des clients //
-  sseManager.broadcast({
-    id: Date.now(),
-    type: "count",
-    data: sseManager.count(),
+  DUMMY_USER.push(newUser);
+
+  let token;
+
+  try {
+    token = jwt.sign(
+      { userId: newUser.id, email: newUser.email },
+      process.env.JWT_KEY,
+      {
+        expiresIn: "1h",
+      }
+    );
+  } catch (err) {
+    const error = new HttpError("login up failed, please try again later", 500);
+    return next(error);
+  }
+
+  res.status(201).json({
+    userId: newUser.id,
+    email: newUser.email,
+    token: token,
   });
+};
 
-  // en cas de fermeture de la connexion, on supprime le client de notre manager //
-  req.on("close", () => {
-    // En cas de deconnexion on supprime le client de notre manager //
-    sseManager.delete(id);
-    // On envoie le nouveau nombre de clients connectés //
-    sseManager.broadcast({
-      id: Date.now(),
-      type: "count",
-      data: sseManager.count(),
-    });
+const getAllUsers = async (req, res, next) => {
+  let resu = [];
+  DUMMY_USER.forEach((usr) => resu.push({ id: usr.id, img: usr.img }));
+  console.log(resu);
+  if (resu.length !== 0) {
+    res.json(resu);
+  } else {
+    const error = new HttpError("Error Not any user", 404);
+    return next(error);
+  }
+};
+
+const getUserbyId = async (req, res, next) => {
+  console.log("Début de getUserbyId");
+  const userId = req.params.pid;
+  const myuser = DUMMY_USER.find((user) => user.id == userId);
+
+  if (myuser) {
+    res.json(myuser);
+  } else {
+    const error = new HttpError("UserId doesn not exist", 404);
+    return next(error);
+  }
+  console.log("Fin de getUserbyId");
+};
+const login = async (req, res, next) => {
+  const { email, password } = req.body;
+
+  const existinguser = DUMMY_USER.find((usr) => usr.email == email);
+
+  if (!existinguser) {
+    const error = new HttpError(
+      "Invalid User email credential, could not find user",
+      401
+    );
+    return next(error);
+  }
+  let isValidPassword = password === existinguser.password;
+  if (!isValidPassword) {
+    try {
+      isValidPassword = await bcrypt.compare(password, existinguser.password);
+    } catch {
+      const error = new HttpError(
+        "Logging dfailed, plaease try again later",
+        500
+      );
+      return next(error);
+    }
+  }
+  if (!isValidPassword) {
+    const error = new HttpError("Invalid pssword credential", 403);
+    return next(error);
+  }
+
+  let token;
+  try {
+    console.log(process.env.JWT_KEY);
+    console.log(existinguser.id);
+    console.log(existinguser.email);
+    token = jwt.sign(
+      { userId: existinguser.id, email: existinguser.email },
+      process.env.JWT_KEY,
+      { expiresIn: "1h" }
+    );
+  } catch (err) {
+    console.log(err);
+    const error = new HttpError("log up failed, please try again later", 500);
+    return next(error);
+  }
+
+  res.status(201).json({
+    userId: existinguser.id,
+    email: existinguser.email,
+    token: token,
   });
-  console.log("fintestlive");
-  next();
-}; */
-
-app.use((req, res, next) => {
-  const error = new HttpError("Could note find this route", 404);
-  throw error;
-});
-app.use((error, req, res, next) => {
-  console.log(error.message);
-  res.status(error.code || 500);
-  res.json({ message: error.message || "An unknow error appears" });
-});
-app.listen(process.env.PORT || 5000);
+};
+exports.getAllUsers = getAllUsers;
+exports.getUserbyId = getUserbyId;
+exports.login = login;
+exports.signup = signup;
