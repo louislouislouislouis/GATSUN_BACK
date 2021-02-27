@@ -66,7 +66,7 @@ class SSEManager {
       this.unicast(id, message);
     }
   }
-  broadcast2(idbegin, message) {
+  broadcastbegin(idbegin, message) {
     for (const [id] of this.clients) {
       if (id.startsWith(idbegin)) {
         this.unicast(id, message);
