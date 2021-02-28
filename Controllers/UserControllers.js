@@ -236,6 +236,7 @@ const getUserbyId = async (req, res, next) => {
   }
   console.log("Fin de getUserbyId");
 };
+
 const login = async (req, res, next) => {
   const { email, password } = req.body;
 
@@ -287,7 +288,50 @@ const login = async (req, res, next) => {
     token: token,
   });
 };
+
+const updateUser = async (req, res, next) => {
+  console.log("Début de updateUser");
+
+  const userId = req.params.pid;
+  const { name, firstname, username, bio, likes } = req.body;
+
+  if (userId !== req.userData.userId) {
+    const error = new HttpError("You don't have such a right??", 401);
+    return next(error);
+  }
+
+  const myuser = DUMMY_USER.find((user) => user.id == userId);
+
+  if (myuser) {
+    if (name) {
+      myuser.name = name;
+      DUMMY_USER.find((user) => user.id == userId).name = name;
+    } else if (firstname) {
+      myuser.firstname = firstname;
+      DUMMY_USER.find((user) => user.id == userId).firstname = firstname;
+    } else if (username) {
+      myuser.username = username;
+      DUMMY_USER.find((user) => user.id == userId).username = username;
+    } else if (bio) {
+      myuser.bio = bio;
+      DUMMY_USER.find((user) => user.id == userId).bio = bio;
+    } else if (likes) {
+      myuser.likes = likes;
+      DUMMY_USER.find((user) => user.id == userId).likes = likes;
+    } else if (!name && !firstname && !username && !bio && !likes) {
+      const error = new HttpError("Content not valid", 400);
+      return next(error);
+    }
+    res.json(myuser);
+  } else {
+    const error = new HttpError("UserId doesn not exist", 404);
+    return next(error);
+  }
+  console.log("Fin de getUserbyId");
+};
+
 exports.getAllUsers = getAllUsers;
 exports.getUserbyId = getUserbyId;
 exports.login = login;
 exports.signup = signup;
+exports.updateUser = updateUser;

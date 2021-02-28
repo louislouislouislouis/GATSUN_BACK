@@ -1,5 +1,7 @@
 const express = require("express");
 const router = express.Router();
+
+const checkauth = require("../Middleware/check-auth");
 const { check } = require("express-validator");
 
 const UserControllers = require("../Controllers/UserControllers");
@@ -19,5 +21,7 @@ router.post(
 );
 
 router.get("/:pid", UserControllers.getUserbyId);
+router.use(checkauth);
+router.patch("/:pid", UserControllers.updateUser);
 
 module.exports = router;
