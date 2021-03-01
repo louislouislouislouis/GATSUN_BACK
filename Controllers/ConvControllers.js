@@ -251,21 +251,20 @@ const getConvsByUserId = async (req, res, next) => {
   for (const conv of userConvs) {
     response.push(DUMMY_CONV.find((conve) => conve.id == conv));
   }
-
-  if (response.length !== 0) {
-    res.json(response);
-  } else {
-    const error = new HttpError("This user has not conv", 404);
-    return next(error);
-  }
+  res.json(response);
 };
 
 const getConvById = async (req, res, next) => {
   console.log("Demande de getConvbyId...");
+  const userId = req.userData.userId;
+  const convId = req.params.convId;
 
-  const userId = req.params.convId;
-  const myconv = DUMMY_CONV.find((conv) => conv.id == userId);
+  const myconv = DUMMY_CONV.find((conv) => conv.id == convId);
 
+  if (!myconv.participants.includes(userId)) {
+    const error = new HttpError("Your not allowed to see this conv", 401);
+    return next(error);
+  }
   if (myconv) {
     res.json(myconv);
   } else {
@@ -275,7 +274,28 @@ const getConvById = async (req, res, next) => {
   console.log("Fin de getConvbyId...");
 };
 
+const isExistingConv = async (req, res, next) => {
+  console.log("Demande de isExistingConv...");
+  const { userId1, userId2 } = req.body;
+
+  if (userId1 !== req.userData.userId) {
+    const error = new HttpError("Your not allowed to see this conv", 401);
+    return next(error);
+  }
+
+  const existingconv = DUMMY_CONV.find(
+    (conv) => conv.participants.has(userId1) && conv.participants.has(userId2)
+  );
+
+  if (existingconv) {
+    res.json(existingconv);
+  } else {
+    res.json({ message: "None" });
+  }
+};
+
 exports.getConvById = getConvById;
 exports.getConvsByUserId = getConvsByUserId;
 exports.createConv = createConv;
 exports.postmsg = postmsg;
+exports.isExistingConv = isExistingConv;

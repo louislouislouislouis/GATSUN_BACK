@@ -213,7 +213,14 @@ const signup = async (req, res, next) => {
 
 const getAllUsers = async (req, res, next) => {
   let resu = [];
-  DUMMY_USER.forEach((usr) => resu.push({ id: usr.id, img: usr.img }));
+  DUMMY_USER.forEach((usr) =>
+    resu.push({
+      id: usr.id,
+      img: usr.img,
+      name: usr.name,
+      firstName: usr.firstName,
+    })
+  );
   console.log(resu);
   if (resu.length !== 0) {
     res.json(resu);
