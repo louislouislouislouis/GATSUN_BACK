@@ -2,7 +2,6 @@ const HttpError = require("../model/http-err");
 const SSEManager = require("../LiveModel/ssemanager");
 
 const sseManager = new SSEManager();
-
 const DUMMY_USER = [
   {
     name: "LOMBARD",
@@ -47,10 +46,26 @@ const DUMMY_USER = [
     post: ["p8", "p98"],
     likes: ["Chat", "Chien", "Poisson"],
     password: "test3",
-    conversation: [],
-    /* conversation: ["conv3", "conv2"], */
+    conversation: ["conv2", "conv3"],
     demande: ["d9", "d4"],
     id: "u3",
+    email: "test3@test.com",
+    role: "u",
+    img:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Festival_automobile_international_2016_-_Photocall_-_043_%28cropped%29.jpg/440px-Festival_automobile_international_2016_-_Photocall_-_043_%28cropped%29.jpg",
+  },
+  {
+    name: "Bob",
+    firstname: "L'éclair",
+    username: "eee",
+    bio:
+      "Lorem ipsum dolor sit amet consectetur, adipisicing elit. Cumque quis dolore cum placeat earum officiis molestiae praesentium consequatur aliquid suscipit tenetur, asperiores vitae pariatur aspernatur modi nemo ipsum culpa porro!",
+    post: ["p8", "p98"],
+    likes: ["Chat", "Chien", "Poisson"],
+    password: "test3",
+    conversation: [],
+    demande: ["d9", "d4"],
+    id: "u4",
     email: "test3@test.com",
     role: "u",
     img:
@@ -60,7 +75,11 @@ const DUMMY_USER = [
 const DUMMY_CONV = [
   {
     id: "conv1",
-    participants: ["u1", "u2"],
+    img: [
+      "https://www.leparisien.fr/resizer/8myHvElJVa1G1DpaHysQfhZZXzA=/932x582/cloudfront-eu-central-1.images.arcpublishing.com/leparisien/ZPHEFWAHZJXSPZPQNXN4OZJ76U.jpg",
+      "https://pbs.twimg.com/profile_images/966627563228553216/FVNkkIcj_400x400.jpg",
+    ],
+    participants: ["u1"],
     messages: [
       {
         from: "u1",
@@ -88,6 +107,10 @@ const DUMMY_CONV = [
   {
     id: "conv2",
     participants: ["u1", "u3"],
+    img: [
+      "https://www.leparisien.fr/resizer/8myHvElJVa1G1DpaHysQfhZZXzA=/932x582/cloudfront-eu-central-1.images.arcpublishing.com/leparisien/ZPHEFWAHZJXSPZPQNXN4OZJ76U.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Festival_automobile_international_2016_-_Photocall_-_043_%28cropped%29.jpg/440px-Festival_automobile_international_2016_-_Photocall_-_043_%28cropped%29.jpg",
+    ],
     messages: [
       {
         from: "u1",
@@ -115,6 +138,10 @@ const DUMMY_CONV = [
   {
     id: "conv3",
     participants: ["u2", "u3"],
+    img: [
+      "https://pbs.twimg.com/profile_images/966627563228553216/FVNkkIcj_400x400.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Festival_automobile_international_2016_-_Photocall_-_043_%28cropped%29.jpg/440px-Festival_automobile_international_2016_-_Photocall_-_043_%28cropped%29.jpg",
+    ],
     messages: [
       {
         from: "u1",

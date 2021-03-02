@@ -167,50 +167,6 @@ app.use((req, res, next) => {
 app.use("/api/conv", convRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/live", liveRoutes);
-/* 
-
-
-const router4 = express.Router();
-const router5 = express.Router();
-const router6 = express.Router();
-
-router5.get("/hello", testlive);
-router6.get("/live/:convId/:uid", testlive2);
-router6.delete("/", quitlive);
-
-app.use("/api/stream/", router4);
-app.use("/stream/", router5);
-app.use("/stream/", router6);
-
-
- /* const testlive2 = async (req, res, next) => {
-  const id = req.params.uid + req.params.convId + uuidv4();
-  //console.log("debuttestlive");
-  // On ouvre la connexion avec notre client //
-  sseManager.open(id, res);
-  //console.log(sseManager.clients);
-
-  // On envoie le nombre de clients connectés à l'ensemble des clients //
-  sseManager.broadcast({
-    id: Date.now(),
-    type: "count",
-    data: sseManager.count(),
-  });
-
-  // en cas de fermeture de la connexion, on supprime le client de notre manager //
-  req.on("close", () => {
-    // En cas de deconnexion on supprime le client de notre manager //
-    sseManager.delete(id);
-    // On envoie le nouveau nombre de clients connectés //
-    sseManager.broadcast({
-      id: Date.now(),
-      type: "count",
-      data: sseManager.count(),
-    });
-  });
-  console.log("fintestlive");
-  next();
-}; */
 
 app.use((req, res, next) => {
   const error = new HttpError("Could note find this route", 404);

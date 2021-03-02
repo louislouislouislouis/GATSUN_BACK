@@ -44,10 +44,26 @@ const DUMMY_USER = [
     post: ["p8", "p98"],
     likes: ["Chat", "Chien", "Poisson"],
     password: "test3",
-    conversation: [],
-    /* conversation: ["conv3", "conv2"], */
+    conversation: ["conv2", "conv3"],
     demande: ["d9", "d4"],
     id: "u3",
+    email: "test3@test.com",
+    role: "u",
+    img:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Festival_automobile_international_2016_-_Photocall_-_043_%28cropped%29.jpg/440px-Festival_automobile_international_2016_-_Photocall_-_043_%28cropped%29.jpg",
+  },
+  {
+    name: "Bob",
+    firstname: "L'éclair",
+    username: "eee",
+    bio:
+      "Lorem ipsum dolor sit amet consectetur, adipisicing elit. Cumque quis dolore cum placeat earum officiis molestiae praesentium consequatur aliquid suscipit tenetur, asperiores vitae pariatur aspernatur modi nemo ipsum culpa porro!",
+    post: ["p8", "p98"],
+    likes: ["Chat", "Chien", "Poisson"],
+    password: "test3",
+    conversation: [],
+    demande: ["d9", "d4"],
+    id: "u4",
     email: "test3@test.com",
     role: "u",
     img:
@@ -61,7 +77,7 @@ const DUMMY_CONV = [
       "https://www.leparisien.fr/resizer/8myHvElJVa1G1DpaHysQfhZZXzA=/932x582/cloudfront-eu-central-1.images.arcpublishing.com/leparisien/ZPHEFWAHZJXSPZPQNXN4OZJ76U.jpg",
       "https://pbs.twimg.com/profile_images/966627563228553216/FVNkkIcj_400x400.jpg",
     ],
-    participants: ["u1", "u2"],
+    participants: ["u1"],
     messages: [
       {
         from: "u1",
@@ -216,21 +232,6 @@ const postmsg = async (req, res, next) => {
       date: new Date(),
       body: req.body.value,
     });
-
-    //Partie à revoir pour notifier user d'un nouveau message;
-
-    /* parts.forEach((part) => {
-       //sseManager.unicast(`${part}${convId}`, {
-          id: Date.now(),
-          type: "message",
-          data: sseManager.count(),
-        }); 
-      sseManager.broadcast2(`${part}${convId}`, {
-        id: Date.now(),
-        type: "message",
-        data: sseManager.count(),
-      });
-    }); */
     res.json({ message: "Your message has been sent" });
   } else {
     const error = new HttpError("Please, do not play that game with me", 401);
@@ -277,6 +278,10 @@ const getConvById = async (req, res, next) => {
 const isExistingConv = async (req, res, next) => {
   console.log("Demande de isExistingConv...");
   const { userId1, userId2 } = req.body;
+  if (userId1 === userId2) {
+    const error = new HttpError("Why created a couv with you?", 401);
+    return next(error);
+  }
 
   if (userId1 !== req.userData.userId) {
     const error = new HttpError("Your not allowed to see this conv", 401);
@@ -284,13 +289,46 @@ const isExistingConv = async (req, res, next) => {
   }
 
   const existingconv = DUMMY_CONV.find(
-    (conv) => conv.participants.has(userId1) && conv.participants.has(userId2)
+    (conv) =>
+      conv.participants.includes(userId1) && conv.participants.includes(userId2)
   );
+  console.log(existingconv);
+  if (!existingconv) {
+    const idconv = uuidv4();
+    const newconv = {
+      id: idconv,
+      participants: [userId1, userId2],
+      messages: [],
+      img: [
+        DUMMY_USER.find((usr) => usr.id == userId1).img,
+        DUMMY_USER.find((usr) => usr.id == userId2).img,
+      ],
+    };
 
-  if (existingconv) {
-    res.json(existingconv);
+    DUMMY_CONV.push(newconv);
+
+    //adding conv to first userConvPart
+
+    const usr1index = DUMMY_USER.findIndex((usr) => usr.id == userId1);
+    DUMMY_USER[usr1index].conversation = DUMMY_USER[
+      usr1index
+    ].conversation.concat(idconv);
+
+    //adding conv to second userConvPart
+
+    const usr2index = DUMMY_USER.findIndex((usr) => usr.id == userId2);
+    DUMMY_USER[usr2index].conversation = DUMMY_USER[
+      usr2index
+    ].conversation.concat(idconv);
+
+    console.log(DUMMY_USER);
+    console.log(DUMMY_CONV);
+    res.json({ idconv: idconv, new: true });
+    console.log("conv" + idconv + "created");
   } else {
-    res.json({ message: "None" });
+    console.log(DUMMY_USER);
+    console.log(DUMMY_CONV);
+    res.json({ idconv: existingconv.id, new: false });
   }
 };
 
