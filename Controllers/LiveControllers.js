@@ -79,7 +79,7 @@ const DUMMY_CONV = [
       "https://www.leparisien.fr/resizer/8myHvElJVa1G1DpaHysQfhZZXzA=/932x582/cloudfront-eu-central-1.images.arcpublishing.com/leparisien/ZPHEFWAHZJXSPZPQNXN4OZJ76U.jpg",
       "https://pbs.twimg.com/profile_images/966627563228553216/FVNkkIcj_400x400.jpg",
     ],
-    participants: ["u1"],
+    participants: ["u1", "u2"],
     messages: [
       {
         from: "u1",
