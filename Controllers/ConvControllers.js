@@ -1,5 +1,8 @@
 const HttpError = require("../model/http-err");
 const { v4: uuidv4 } = require("uuid");
+const Conv = require("../model/conv-model");
+const User = require("../model/user-model");
+
 const DUMMY_USER = [
   {
     name: "LOMBARD",
@@ -241,18 +244,28 @@ const postmsg = async (req, res, next) => {
 const getConvsByUserId = async (req, res, next) => {
   console.log("Demande de get convby userId");
   const userId = req.params.uid;
-
   if (userId !== req.userData.userId) {
-    const error = new HttpError("Your not allowed to see this conv", 401);
+    const error = new HttpError("Your not alloweeeed to see this conv", 401);
     return next(error);
   }
-  const userConvs = DUMMY_USER.find((user) => user.id == userId).conversation;
-
-  let response = [];
-  for (const conv of userConvs) {
-    response.push(DUMMY_CONV.find((conve) => conve.id == conv));
+  let userwithconv;
+  try {
+    userwithconv = await User.findById(userId).populate("convs");
+  } catch (err) {
+    const error = new HttpError("Error with our DB", 500);
+    return next(error);
   }
-  res.json(response);
+  if (!userwithconv) {
+    const error = new HttpError("Error, cant find conv by userId", 401);
+    return next(error);
+  }
+  if (userwithconv.convs.lenght === 0) {
+    res.status(201).json({ convs: [] });
+  } else {
+    res.status(201).json({
+      convs: userwithconv.convs.map((u) => u.toObject({ getters: true })),
+    });
+  }
 };
 
 const getConvById = async (req, res, next) => {
@@ -334,7 +347,7 @@ const isExistingConv = async (req, res, next) => {
 };
 
 exports.getConvById = getConvById;
-exports.getConvsByUserId = getConvsByUserId;
+exports.getConvsByUserId = getConvsByUserId; //
 exports.createConv = createConv;
 exports.postmsg = postmsg;
 exports.isExistingConv = isExistingConv;
