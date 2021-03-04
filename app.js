@@ -7,6 +7,7 @@ const liveRoutes = require("./Routes/LiveRoutes");
 
 const SSEManager = require("./LiveModel/ssemanager");
 const HttpError = require("./model/http-err");
+const mongoose = require("mongoose");
 
 const app = express();
 app.use(bodyParser.json());
@@ -177,4 +178,15 @@ app.use((error, req, res, next) => {
   res.status(error.code || 500);
   res.json({ message: error.message || "An unknow error appears" });
 });
-app.listen(process.env.PORT || 5000);
+
+mongoose
+  .connect(
+    `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.t8mdl.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`
+  )
+  .then(() => {
+    console.log("connet");
+    app.listen(process.env.PORT || 5000);
+  })
+  .catch((err) => {
+    console.log(err);
+  });
