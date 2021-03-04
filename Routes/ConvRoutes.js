@@ -12,6 +12,4 @@ router.post("/:convId/msg", ConvControllers.postmsg);
 
 router.get("/:convId", ConvControllers.getConvById);
 
-router.post("/", ConvControllers.createConv);
-
 module.exports = router;

@@ -1,5 +1,6 @@
 const HttpError = require("../model/http-err");
 const SSEManager = require("../LiveModel/ssemanager");
+const Conv = require("../model/conv-model");
 
 const sseManager = new SSEManager();
 const DUMMY_USER = [
@@ -168,15 +169,6 @@ const DUMMY_CONV = [
   },
 ];
 
-const entrytest = async (req, res, next) => {
-  const error = new HttpError("Error Not any user", 404);
-  res.status(201).json({
-    userId: "existinguser.id",
-    email: "existinguser.email",
-    token: "token",
-  });
-};
-
 const entry = async (req, res, next) => {
   console.log("in");
   const id = req.params.uid;
@@ -211,8 +203,22 @@ const newmsg = async (req, res, next) => {
 
   const convId = req.params.convId;
   console.log(convId);
-  const participants = DUMMY_CONV.find((cv) => cv.id === convId).participants;
 
+  let conv;
+  try {
+    conv = await Conv.findById(convId);
+  } catch (err) {
+    const error = new HttpError("Error withhhh our DB", 500);
+    return next(error);
+  }
+  if (!conv || conv.length === 0) {
+    const error = new HttpError("Error", 500);
+    return next(error);
+  }
+  const participants = conv.participants.toString().split(",");
+  console.log("ddsd");
+  console.log(participants);
+  //console.log(sseManager.clients);
   // On ouvre la connexion avec notre client //
   // On envoie le nombre de clients connectés à l'ensemble des clients //
   participants.forEach((part) => {
