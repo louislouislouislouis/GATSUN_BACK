@@ -73,11 +73,15 @@ const getConvById = async (req, res, next) => {
   let conv;
   try {
     conv = await Conv.findById(convId);
+    console.log(conv);
   } catch (err) {
     const error = new HttpError("Error with our DB", 500);
     return next(error);
   }
-
+  if (conv === null) {
+    const error = new HttpError("Conv don't exist", 401);
+    return next(error);
+  }
   if (!conv.participants.includes(userId)) {
     const error = new HttpError("Your not allowed to see this conv", 401);
     return next(error);
