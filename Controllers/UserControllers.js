@@ -109,10 +109,11 @@ const getAllUsers = async (req, res, next) => {
 const getUserbyId = async (req, res, next) => {
   const userId = req.params.pid;
   let user;
+  console.log(userId);
   try {
     user = await User.findOne({ _id: userId }, "-password -role -_id");
   } catch (err) {
-    const error = new HttpError("Error with our DB", 500);
+    const error = new HttpError("Error wddddh our DB", 500);
     return next(error);
   }
   if (!user) {
