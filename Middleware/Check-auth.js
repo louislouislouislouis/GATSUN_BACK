@@ -7,13 +7,12 @@ module.exports = (req, res, next) => {
   }
   try {
     const token = req.headers.authorization.split(" ")[1];
-    console.log(token);
+
     if (!token) {
       throw new Error("Auth Failed");
     }
     const decodedtoken = jwt.verify(token, process.env.JWT_KEY);
     req.userData = { userId: decodedtoken.userId };
-    console.log("ee");
     next();
   } catch (err) {
     const error = new HttpError("Authorzation failed", 403);

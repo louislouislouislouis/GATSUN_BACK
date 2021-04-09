@@ -14,7 +14,16 @@ const signup = async (req, res, next) => {
     return next(new HttpError("Error input", 422));
   }
 
-  const { name, firstName, Username, email, password, image } = req.body;
+  const {
+    name,
+    firstName,
+    bio,
+    email,
+    password,
+    image,
+    likes,
+    status,
+  } = req.body;
   console.log(req.body);
   let existinguser;
   try {
@@ -45,11 +54,12 @@ const signup = async (req, res, next) => {
   const newUser = new User({
     name: name,
     firstname: firstName,
-    bio: "NewUser!!",
+    bio: bio,
     posts: [],
-    likes: [],
+    likes: likes,
     password: hashedpassword,
     convs: [],
+    status: status,
     demandes: [],
     email: email,
     role: "usr",
@@ -83,11 +93,30 @@ const signup = async (req, res, next) => {
   res.status(201).json({
     userId: newUser.id,
     email: newUser.email,
+    UserImg: newUser.UserImg,
     token: token,
   });
 };
 
 const getAllUsers = async (req, res, next) => {
+  let Users;
+  try {
+    Users = await User.find(
+      { status: "public" },
+      "-password -likes -posts -convs -demandes -email -role"
+    );
+  } catch (err) {
+    const error = new HttpError(
+      "Fetching user failed, plaease try again later",
+      500
+    );
+    return next(error);
+  }
+  res
+    .status(200)
+    .json({ users: Users.map((u) => u.toObject({ getters: true })) });
+};
+const getrAllUsers = async (req, res, next) => {
   let Users;
   try {
     Users = await User.find(
@@ -109,9 +138,9 @@ const getAllUsers = async (req, res, next) => {
 const getUserbyId = async (req, res, next) => {
   const userId = req.params.pid;
   let user;
-  console.log(userId);
+
   try {
-    user = await User.findOne({ _id: userId }, "-password -role -_id");
+    user = await User.findOne({ _id: userId }, "-password -_id");
   } catch (err) {
     const error = new HttpError("Error wddddh our DB", 500);
     return next(error);
@@ -127,6 +156,27 @@ const getUserbyId = async (req, res, next) => {
     firstname: user.firstname,
     image: user.image,
     likes: user.likes,
+    role: user.role,
+    status: user.status,
+  });
+};
+
+const getUserbyImgId = async (req, res, next) => {
+  const userId = req.params.pid;
+  let user;
+
+  try {
+    user = await User.findOne({ _id: userId }, "-password -_id");
+  } catch (err) {
+    const error = new HttpError("Error wddddh our DB", 500);
+    return next(error);
+  }
+  if (!user) {
+    const error = new HttpError("Error, user Doesnt exist", 401);
+    return next(error);
+  }
+  res.status(201).json({
+    image: user.image,
   });
 };
 
@@ -178,12 +228,13 @@ const login = async (req, res, next) => {
     userId: existinguser.id,
     email: existinguser.email,
     token: token,
+    UserImg: existinguser.image,
   });
 };
 
 const updateUser = async (req, res, next) => {
   const userId = req.params.pid;
-  const { name, firstname, username, bio, likes } = req.body;
+  const { name, firstName, username, bio, likes, status, image } = req.body;
 
   if (userId !== req.userData.userId) {
     const error = new HttpError("You don't have such a right??", 401);
@@ -198,18 +249,31 @@ const updateUser = async (req, res, next) => {
     const error = new HttpError("something wrong", 500);
     return next(error);
   }
+  console.log("eee");
   if (myuser) {
     if (name) {
       myuser.name = name;
-    } else if (firstname) {
-      myuser.firstname = firstname;
-    } else if (username) {
+    }
+    if (status) {
+      myuser.status = status;
+    }
+    if (firstName) {
+      myuser.firstname = firstName;
+    }
+    if (username) {
       myuser.username = username;
-    } else if (bio) {
+    }
+    if (image) {
+      myuser.image = image;
+    }
+
+    if (bio) {
       myuser.bio = bio;
-    } else if (likes) {
+    }
+    if (likes) {
       myuser.likes = likes;
-    } else if (!name && !firstname && !username && !bio && !likes) {
+    }
+    if (!name && !firstname && !username && !bio && !likes) {
       const error = new HttpError("Content not valid", 400);
       return next(error);
     }
@@ -218,6 +282,7 @@ const updateUser = async (req, res, next) => {
     return next(error);
   }
   try {
+    console.log(myuser);
     await myuser.save();
   } catch (err) {
     const error = new HttpError("Something wrong", 500);
@@ -239,3 +304,5 @@ exports.getUserbyId = getUserbyId;
 exports.login = login;
 exports.signup = signup;
 exports.updateUser = updateUser;
+exports.getrAllUsers = getrAllUsers;
+exports.getImgUserId = getUserbyImgId;

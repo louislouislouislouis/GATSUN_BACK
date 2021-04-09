@@ -11,5 +11,4 @@ router.get("/fbuser/:uid", ConvControllers.getConvsByUserId);
 router.post("/:convId/msg", ConvControllers.postmsg);
 
 router.get("/:convId", ConvControllers.getConvById);
-
 module.exports = router;

@@ -124,12 +124,10 @@ const isExistingConv = async (req, res, next) => {
     return next(error);
   }
   console.log(conv, user1, user2);
-  console.log(conv, user1.image, user2.image);
-  if (conv.length === 0) {
+  if (!conv) {
     const newconv = new Conv({
       participants: [userId1, userId2],
       messages: [],
-      image: [user1.image, user2.image],
     });
 
     try {
@@ -145,11 +143,10 @@ const isExistingConv = async (req, res, next) => {
       const error = new HttpError("cannnnnot add place", 500);
       return next(error);
     }
-    res.status(201).json({ conv: newconv });
+    res.status(201).json({ idconv: newconv._id });
   } else {
     console.log(conv);
     console.log(conv._id);
-
     res.json({ idconv: conv._id, new: false });
   }
 };
