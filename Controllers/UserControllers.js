@@ -103,7 +103,7 @@ const getAllUsers = async (req, res, next) => {
   try {
     Users = await User.find(
       { status: "public" },
-      "-password -likes -posts -convs -demandes -email -role"
+      "-password  -posts -convs -demandes -email -role"
     );
   } catch (err) {
     const error = new HttpError(
@@ -121,7 +121,7 @@ const getrAllUsers = async (req, res, next) => {
   try {
     Users = await User.find(
       {},
-      "-password -likes -posts -convs -demandes -email -role"
+      "-password  -posts -convs -demandes -email -role"
     );
   } catch (err) {
     const error = new HttpError(
