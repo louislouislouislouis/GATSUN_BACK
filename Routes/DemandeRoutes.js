@@ -6,7 +6,7 @@ const { check } = require("express-validator");
 
 const DemandesControllers = require("../Controllers/DemandesControllers");
 router.use(checkauth);
-
+router.get("", DemandesControllers.getdemandbyuserId);
 router.post(
   "/new",
   [

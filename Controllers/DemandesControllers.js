@@ -174,5 +174,17 @@ const patchdemandbyid = async (req, res, next) => {
 
   res.status(201).json({ newDemand });
 };
+const getdemandbyuserId = async (req, res, next) => {
+  console.log(req.userData.userId);
+  let demanduser;
+  try {
+    demanduser = await Demand.find({ from: req.userData.userId });
+  } catch (err) {
+    const error = new HttpError("Error with our DB at demand", 500);
+    return next(error);
+  }
 
+  res.status(201).json({ demanduser });
+};
 exports.newdemand = newdemand;
+exports.getdemandbyuserId = getdemandbyuserId;
