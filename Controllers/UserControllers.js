@@ -62,7 +62,7 @@ const signup = async (req, res, next) => {
     status: status,
     demandes: [],
     email: email,
-    role: "usr",
+    role: "NC",
     image: image,
   });
 
