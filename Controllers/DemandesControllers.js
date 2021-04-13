@@ -1,7 +1,6 @@
 const Demand = require("../model/demandes-model");
 const User = require("../model/user-model");
 const Mongoose = require("mongoose");
-var ObjectId = require("mongoose").Types.ObjectId;
 const nodemailer = require("nodemailer");
 const { validationResult } = require("express-validator");
 const HttpError = require("../model/http-err");
@@ -46,7 +45,11 @@ const newdemand = async (req, res, next) => {
   //check if user already have demands
   let continu = true;
   useralldemands.forEach((demand) => {
-    if ((demand.status = "Waiting for validation")) {
+    console.log(demand);
+    if (
+      demand.status === "Waiting for validation" ||
+      demand.status === "En attente de paiement"
+    ) {
       continu = false;
     }
   });
@@ -75,6 +78,7 @@ const newdemand = async (req, res, next) => {
     askingDate: askingDate,
     paymentmethod: paymentmethod,
     status: "Waiting for validation",
+    ownerdenomination: `${user1.firstname} ${user1.name}`,
   });
 
   const transporter = nodemailer.createTransport({
@@ -138,42 +142,7 @@ const newdemand = async (req, res, next) => {
 
   res.status(201).json({ newDemand });
 };
-const patchdemandbyid = async (req, res, next) => {
-  console.log(req.userData.userId);
-  const errors = validationResult(req);
 
-  if (!errors.isEmpty()) {
-    console.log(errors);
-    return next(new HttpError("Error input", 422));
-  }
-  const {
-    askingDate,
-    askedDatebeg,
-    askedDateend,
-    message,
-    paymentmethod,
-  } = req.body;
-
-  const newDemand = new Demand({
-    from: req.userData.userId,
-    body: message,
-    type: "privatesession",
-    askedDatebeg: askedDatebeg,
-    askedDateend: askedDateend,
-    askingDate: askingDate,
-    paymentmethod: paymentmethod,
-  });
-
-  try {
-    await newDemand.save();
-  } catch (err) {
-    console.log(err);
-    const error = new HttpError("cannot add demand", 500);
-    return next(error);
-  }
-
-  res.status(201).json({ newDemand });
-};
 const getdemandbyuserId = async (req, res, next) => {
   console.log(req.userData.userId);
   let demanduser;
@@ -186,5 +155,143 @@ const getdemandbyuserId = async (req, res, next) => {
 
   res.status(201).json({ demanduser });
 };
+const getdemandalldemandmaster = async (req, res, next) => {
+  console.log(req.userData.userId);
+  let usermaster;
+  try {
+    usermaster = await User.findById(req.userData.userId);
+  } catch (err) {
+    const error = new HttpError("Error with our DB at user", 500);
+    return next(error);
+  }
+  if (
+    usermaster.role !== "responsable" &&
+    usermaster.role !== "bureau" &&
+    usermaster.role !== "Master"
+  ) {
+    const error = new HttpError("You are not allowed to do this", 403);
+    return next(error);
+  }
+  let alldemand;
+  try {
+    alldemand = await Demand.find({ status: "Waiting for validation" });
+  } catch (err) {
+    const error = new HttpError("Error with our DB at demand", 500);
+    return next(error);
+  }
+
+  res.status(201).json({ alldemand });
+};
+const acceptordenydemand = async (req, res, next) => {
+  console.log(req.userData.userId);
+  let usermaster;
+  try {
+    usermaster = await User.findById(req.userData.userId);
+  } catch (err) {
+    const error = new HttpError("Error with our DB at User", 500);
+    return next(error);
+  }
+  if (
+    usermaster.role !== "responsable" &&
+    usermaster.role !== "bureau" &&
+    usermaster.role !== "Master"
+  ) {
+    const error = new HttpError("You are not allowed to do this", 403);
+    return next(error);
+  }
+  const { demand, result, date, message } = req.body;
+
+  let demandbd;
+  try {
+    demandbd = await Demand.findById(demand);
+  } catch (err) {
+    const error = new HttpError("Error with our DB at demand", 500);
+    return next(error);
+  }
+  if (!demandbd) {
+    const error = new HttpError("Error non demanddb", 404);
+    return next(error);
+  }
+  if (demandbd.status !== "Waiting for validation") {
+    const error = new HttpError(
+      "Cette demande n'attends pas de validation",
+      404
+    );
+    return next(error);
+  }
+
+  let userconcern;
+  try {
+    userconcern = await User.findById(demandbd.from);
+  } catch (err) {
+    const error = new HttpError("Error with our DB at user", 500);
+    return next(error);
+  }
+  console.log(userconcern);
+  if (!userconcern) {
+    const error = new HttpError("Error", 404);
+    return next(error);
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.MAIL,
+      pass: process.env.MAILMDP,
+    },
+  });
+
+  demandbd.validateby = req.userData.userId;
+  demandbd.feedbackdate = date;
+
+  if (result) {
+    if (demandbd.paymentmethod === "cash") {
+      demandbd.dateofclose = date;
+      demandbd.status = "Confirmed - Cash";
+    } else {
+      demandbd.status = "En attente de paiement";
+      const time =
+        -(
+          new Date(demandbd.askedDatebeg).getTime() -
+          new Date(demandbd.askedDateend).getTime()
+        ) / 3600000;
+      const mailOptions = {
+        from: process.env.MAIL,
+        to: userconcern.email,
+        subject: `LIEN DE PAIMENT`,
+        html: `<div style="background-color:white"><h1 style="color: blue">DEMANDE DE SESSION PRIVÉE.</h1> 
+        <p style="color: black">Bonjour ${userconcern.firstname} ${userconcern.name} voila le lien pour payer ...<br><b>INFO SESSION</b>:<br> <br>SESSION-ID: ${demandbd._id} <br>DEMANDEUR: ${userconcern.firstname} ${userconcern.name}<br>DATE DE DEBUT: ${demandbd.askedDatebeg}<br>DUREE: ${time}H<br>MESSAGE: ${demandbd.body}H<br>MODE DE PAIEMENT: ${demandbd.paymentmethod}<br><br><br></p></div>
+        `,
+      };
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.log(error);
+          const error = new HttpError(
+            "Il y a eu une demande dans l'envoie des mails, contacter l'équipe gatsun au plus vite",
+            500
+          );
+          return next(error);
+        } else {
+          console.log("Email sent: " + info.response);
+        }
+      });
+    }
+  } else {
+    demandbd.feedback = message;
+    demandbd.status = "Refusé";
+    demandbd.dateofclose = date;
+    demandbd.feedbackdate = date;
+  }
+
+  try {
+    await demandbd.save();
+  } catch (err) {
+    const error = new HttpError("somethffing wrong", 500);
+    return next(error);
+  }
+  res.status(201).json({ message: "Success" });
+};
 exports.newdemand = newdemand;
 exports.getdemandbyuserId = getdemandbyuserId;
+exports.getdemandalldemandmaster = getdemandalldemandmaster;
+exports.acceptordenydemand = acceptordenydemand;
