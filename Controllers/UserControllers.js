@@ -5,6 +5,8 @@ const HttpError = require("../model/http-err");
 const bcrypt = require("bcryptjs");
 
 const User = require("../model/user-model");
+const Demand = require("../model/demandes-model");
+const Conv = require("../model/conv-model");
 
 const signup = async (req, res, next) => {
   const errors = validationResult(req);
@@ -299,6 +301,36 @@ const updateUser = async (req, res, next) => {
   console.log("Fin de getUserbyId");
 };
 
+const deletedata = async (req, res, next) => {
+  console.log(req.userData.userId);
+  let usermaster;
+  try {
+    usermaster = await User.findById(req.userData.userId);
+  } catch (err) {
+    const error = new HttpError("Error with our DB at user", 500);
+    return next(error);
+  }
+  if (usermaster === null) {
+    const error = new HttpError("Error", 500);
+    return next(error);
+  }
+  if (usermaster.role !== "Master") {
+    const error = new HttpError("You are not allowed to do this", 403);
+    return next(error);
+  }
+  try {
+    await User.collection.drop();
+    await Demand.collection.drop();
+    await Conv.collection.drop();
+  } catch (err) {
+    console.log(err);
+    const error = new HttpError("You are not allowed to do this", 403);
+    return next(error);
+  }
+  res.status(201).json({
+    done: "true",
+  });
+};
 exports.getAllUsers = getAllUsers;
 exports.getUserbyId = getUserbyId;
 exports.login = login;
@@ -306,3 +338,4 @@ exports.signup = signup;
 exports.updateUser = updateUser;
 exports.getrAllUsers = getrAllUsers;
 exports.getImgUserId = getUserbyImgId;
+exports.deletedata = deletedata;

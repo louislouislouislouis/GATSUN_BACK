@@ -1,4 +1,4 @@
-const SSEClient = require("./SSEClient");
+const SSEClient = require("./sseclient");
 
 class SSEManager {
   constructor() {

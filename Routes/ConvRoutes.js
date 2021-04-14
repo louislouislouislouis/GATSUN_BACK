@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const checkauth = require("../Middleware/check-auth");
+const checkauth = require("../Middleware/Check-auth");
 const ConvControllers = require("../Controllers/ConvControllers");
 
 router.use(checkauth);

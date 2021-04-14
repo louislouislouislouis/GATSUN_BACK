@@ -6,6 +6,7 @@ const userRoutes = require("./Routes/UserRoutes");
 const liveRoutes = require("./Routes/LiveRoutes");
 const demandeRoutes = require("./Routes/DemandeRoutes");
 const helloAssoRoutes = require("./Routes/helloAssoRoutes");
+const occupRoutes = require("./Routes/occupRoutes");
 
 const SSEManager = require("./LiveModel/ssemanager");
 const HttpError = require("./model/http-err");
@@ -30,6 +31,7 @@ app.use((req, res, next) => {
 });
 
 app.use("/api/conv", convRoutes);
+app.use("/api/occup", occupRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/live", liveRoutes);
 app.use("/api/demand", demandeRoutes);

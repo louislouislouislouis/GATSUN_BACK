@@ -14,7 +14,34 @@ const fake = [
       organizationSlug: "gatsun",
     },
     payer: {
-      email: "Boris.chardonneau@orange.fr",
+      email: "louIs.raphaEl.lombArd@gmail.com",
+      country: "FRA",
+      firstName: "Boris",
+      lastName: "Chardonneau",
+    },
+    payments: [[Object]],
+    name: "1 heure avec assistance",
+    user: { firstName: "Boris", lastName: "Chardonneau " },
+    priceCategory: "Fixed",
+    ticketUrl:
+      "https://www.helloasso.com/associations/gatsun/evenements/session-privee/ticket?ticketId=20747192&ag=20747192",
+    isCanceled: false,
+    id: 20747192,
+    amount: 500,
+    type: "Registration",
+    initialAmount: 500,
+    state: "Processed",
+  },
+  {
+    order: {
+      id: 47192,
+      date: "2021-04-14T11:36:22.1562791+00:00",
+      formSlug: "session-privee",
+      formType: "Event",
+      organizationSlug: "gatsun",
+    },
+    payer: {
+      email: "louis.raphael.lombard@gmail.com",
       country: "FRA",
       firstName: "Boris",
       lastName: "Chardonneau",
@@ -74,7 +101,7 @@ const getpayment = async (req, res, next) => {
   const timetocheck = [];
 
   alldemand.forEach((el) => {
-    const time =
+    let time =
       -(
         new Date(el.askedDatebeg).getTime() -
         new Date(el.askedDateend).getTime()
@@ -129,8 +156,14 @@ const getpayment = async (req, res, next) => {
     return next(error);
   }
 
+  async function asyncForEach(array, callback) {
+    for (let index = 0; index < array.length; index++) {
+      await callback(array[index], index, array);
+    }
+  }
   //looping into array to update demand if payed
-  arraydemanding.forEach(async (element) => {
+
+  await asyncForEach(arraydemanding, async (element) => {
     //Etape 1: Récupérer toutes les données de payment liée à un Event situé dans l'array
     let repreq1;
     try {
@@ -142,6 +175,7 @@ const getpayment = async (req, res, next) => {
           },
         }
       );
+
       repreq1 = rep.data.data;
     } catch (err) {
       console.log(err);
@@ -150,40 +184,49 @@ const getpayment = async (req, res, next) => {
     }
 
     //Etape 2: Rechercher parmi tous les payment d'un Event celui qui correspond au bon email
-    if (repreq1) {
-      repreq1.forEach(async (el) => {
+    if (repreq1.length !== 0) {
+      await asyncForEach(repreq1, async (el) => {
         //on prend les info qui nous interesse
-        let emailtofind = el.payer.email;
+
+        let emailtofind = el.payer.email.toLowerCase();
+
         let datepayement = el.order.date;
 
         //on recherche parmis notre tableau de demand à actualiser celui qui correspond au bon email
         const demandtoadapt = alldemand.find(
-          (demand) => demand.emaildemandeur === emailtofind && demand
+          (demand) => demand.emaildemandeur === emailtofind
         );
 
         //seulement si l'email est  dans le tableau des valeur à actualiser et dans nos req
 
         if (demandtoadapt) {
+          console.log("Une email a été trouvée");
           //sommes nous dans la boucle qui correspond au bon time duration?
-          const demandtimewearelookingfor =
+          let demandtimewearelookingfor =
             -(
-              new Date(demandtoadaptl.askedDatebeg).getTime() -
+              new Date(demandtoadapt.askedDatebeg).getTime() -
               new Date(demandtoadapt.askedDateend).getTime()
             ) / 3600000;
-
+          //transform 6H to 5
+          if (demandtimewearelookingfor === 6) {
+            demandtimewearelookingfor = 5;
+          }
           if (demandtimewearelookingfor === element.time) {
             //La date de payment est-elle bonne?
+            console.log("le temps est bon");
             if (
               new Date(datepayement).getTime() -
-                new Date(demand.askingDate).getTime() >
+                new Date(demandtoadapt.askingDate).getTime() >
               0
             ) {
+              console.log("La date est bonne");
               //on cherche à quel élément de notre array de demand à actualiser cela correspond
-              demandtoadapt.status = "Confirmed - CB";
-              demandtoadapt.status = new Date();
+              demandtoadapt.status = "Confirmed - CB payed";
+              demandtoadapt.dateofclose = new Date();
               try {
                 await demandtoadapt.save();
                 changment = true;
+                console.log("juste avant " + changment);
               } catch (err) {
                 const error = new HttpError("somethffing wrong", 500);
                 return next(error);
@@ -195,15 +238,17 @@ const getpayment = async (req, res, next) => {
     }
   });
 
-  res
-    .status(201)
-    .json({
-      message: `${
-        changment
-          ? "La base de données à été actualiser"
-          : "LA base de données ne s'est pas actualisé"
-      }`,
+  if (changment) {
+    res.status(201).json({
+      message: "Success",
     });
+  } else {
+    const error = new HttpError(
+      "La base de donnée a enregistré aucun changement",
+      500
+    );
+    return next(error);
+  }
 };
 
 exports.getpayment = getpayment;

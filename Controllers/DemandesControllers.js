@@ -1,3 +1,4 @@
+const Occupation = require("../model/occupation-model");
 const Demand = require("../model/demandes-model");
 const User = require("../model/user-model");
 const Mongoose = require("mongoose");
@@ -79,6 +80,7 @@ const newdemand = async (req, res, next) => {
     paymentmethod: paymentmethod,
     status: "Waiting for validation",
     ownerdenomination: `${user1.firstname} ${user1.name}`,
+    emaildemandeur: user1.email,
   });
 
   const transporter = nodemailer.createTransport({
@@ -155,6 +157,50 @@ const getdemandbyuserId = async (req, res, next) => {
 
   res.status(201).json({ demanduser });
 };
+const validatepayment = async (req, res, next) => {
+  console.log(req.userData.userId);
+  let usermaster;
+  try {
+    usermaster = await User.findById(req.userData.userId);
+  } catch (err) {
+    const error = new HttpError("Error with our DB at user", 500);
+    return next(error);
+  }
+  if (
+    usermaster.role !== "responsable" &&
+    usermaster.role !== "bureau" &&
+    usermaster.role !== "Master"
+  ) {
+    const error = new HttpError("You are not allowed to do this", 403);
+    return next(error);
+  }
+  const { demand } = req.body;
+  let demandbd;
+  try {
+    demandbd = await Demand.findById(demand);
+  } catch (err) {
+    const error = new HttpError("Error with our DB at demand", 500);
+    return next(error);
+  }
+  if (!demandbd) {
+    const error = new HttpError("Error non demanddb", 404);
+    return next(error);
+  }
+  if (demandbd.status !== "En attente de paiement") {
+    const error = new HttpError("Cette demande n'attends pas de paiement", 404);
+    return next(error);
+  }
+
+  demandbd.status = "Confirmed - CB payed";
+  demandbd.dateofclose = new Date();
+  try {
+    await demandbd.save();
+  } catch (err) {
+    const error = new HttpError("somethffing wrong", 500);
+    return next(error);
+  }
+  res.status(201).json({ message: "Success" });
+};
 const getdemandalldemandmaster = async (req, res, next) => {
   console.log(req.userData.userId);
   let usermaster;
@@ -175,6 +221,33 @@ const getdemandalldemandmaster = async (req, res, next) => {
   let alldemand;
   try {
     alldemand = await Demand.find({ status: "Waiting for validation" });
+  } catch (err) {
+    const error = new HttpError("Error with our DB at demand", 500);
+    return next(error);
+  }
+
+  res.status(201).json({ alldemand });
+};
+const getdemandalldemandmasterpaimentwaitngs = async (req, res, next) => {
+  console.log(req.userData.userId);
+  let usermaster;
+  try {
+    usermaster = await User.findById(req.userData.userId);
+  } catch (err) {
+    const error = new HttpError("Error with our DB at user", 500);
+    return next(error);
+  }
+  if (
+    usermaster.role !== "responsable" &&
+    usermaster.role !== "bureau" &&
+    usermaster.role !== "Master"
+  ) {
+    const error = new HttpError("You are not allowed to do this", 403);
+    return next(error);
+  }
+  let alldemand;
+  try {
+    alldemand = await Demand.find({ status: "En attente de paiement" });
   } catch (err) {
     const error = new HttpError("Error with our DB at demand", 500);
     return next(error);
@@ -255,12 +328,29 @@ const acceptordenydemand = async (req, res, next) => {
           new Date(demandbd.askedDatebeg).getTime() -
           new Date(demandbd.askedDateend).getTime()
         ) / 3600000;
+      let link;
+      if (time === 1) {
+        link =
+          "https://www.helloasso.com/associations/gatsun/evenements/session-privee-1h";
+      } else if (time === 2) {
+        link =
+          "https://www.helloasso.com/associations/gatsun/evenements/session-privee-2h";
+      } else if (time === 3) {
+        link =
+          "https://www.helloasso.com/associations/gatsun/evenements/session-privee-1h-1";
+      } else if (time === 4) {
+        link =
+          "https://www.helloasso.com/associations/gatsun/evenements/session-privee-4h";
+      } else if (time === 5 || time === 6) {
+        link =
+          "https://www.helloasso.com/associations/gatsun/evenements/session-privee-5h-et-plus";
+      }
       const mailOptions = {
         from: process.env.MAIL,
         to: userconcern.email,
         subject: `LIEN DE PAIMENT`,
         html: `<div style="background-color:white"><h1 style="color: blue">DEMANDE DE SESSION PRIVÉE.</h1> 
-        <p style="color: black">Bonjour ${userconcern.firstname} ${userconcern.name} voila le lien pour payer ...<br><b>INFO SESSION</b>:<br> <br>SESSION-ID: ${demandbd._id} <br>DEMANDEUR: ${userconcern.firstname} ${userconcern.name}<br>DATE DE DEBUT: ${demandbd.askedDatebeg}<br>DUREE: ${time}H<br>MESSAGE: ${demandbd.body}H<br>MODE DE PAIEMENT: ${demandbd.paymentmethod}<br><br><br></p></div>
+        <p style="color: black">Bonjour ${userconcern.firstname} ${userconcern.name} voila le lien pour payer <br>${link}<br><b>INFO SESSION</b>:<br> <br>SESSION-ID: ${demandbd._id} <br>DEMANDEUR: ${userconcern.firstname} ${userconcern.name}<br>DATE DE DEBUT: ${demandbd.askedDatebeg}<br>DUREE: ${time}H<br>MESSAGE: ${demandbd.body}H<br>MODE DE PAIEMENT: ${demandbd.paymentmethod}<br><br><br></p></div>
         `,
       };
       transporter.sendMail(mailOptions, (error, info) => {
@@ -282,16 +372,38 @@ const acceptordenydemand = async (req, res, next) => {
     demandbd.dateofclose = date;
     demandbd.feedbackdate = date;
   }
-
-  try {
-    await demandbd.save();
-  } catch (err) {
-    const error = new HttpError("somethffing wrong", 500);
-    return next(error);
+  const newoccup = new Occupation({
+    dateend: demandbd.askedDateend,
+    datebegin: demandbd.askedDatebeg,
+  });
+  if (result) {
+    try {
+      const sess = await Mongoose.startSession();
+      sess.startTransaction();
+      await demandbd.save({ session: sess });
+      await newoccup.save({ session: sess });
+      await sess.commitTransaction();
+    } catch (err) {
+      console.log(err);
+      const error = new HttpError("cannnnnot add demand", 500);
+      return next(error);
+    }
+  } else {
+    try {
+      await demandbd.save();
+    } catch (err) {
+      console.log(err);
+      const error = new HttpError("cannnnnot add demand", 500);
+      return next(error);
+    }
   }
+
   res.status(201).json({ message: "Success" });
 };
+
 exports.newdemand = newdemand;
 exports.getdemandbyuserId = getdemandbyuserId;
 exports.getdemandalldemandmaster = getdemandalldemandmaster;
 exports.acceptordenydemand = acceptordenydemand;
+exports.getdemandalldemandmasterpaimentwaitngs = getdemandalldemandmasterpaimentwaitngs;
+exports.validatepayment = validatepayment;

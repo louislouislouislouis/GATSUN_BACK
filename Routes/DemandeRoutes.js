@@ -1,14 +1,20 @@
 const express = require("express");
 const router = express.Router();
 
-const checkauth = require("../Middleware/check-auth");
+const checkauth = require("../Middleware/Check-auth");
 const { check } = require("express-validator");
 
 const DemandesControllers = require("../Controllers/DemandesControllers");
 router.use(checkauth);
 router.get("", DemandesControllers.getdemandbyuserId);
 router.patch("", DemandesControllers.acceptordenydemand);
+router.patch("/validate", DemandesControllers.validatepayment);
 router.get("/all", DemandesControllers.getdemandalldemandmaster);
+router.get(
+  "/allpayment",
+  DemandesControllers.getdemandalldemandmasterpaimentwaitngs
+);
+
 router.post(
   "/new",
   [

@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const checkauth = require("../Middleware/check-auth");
+const checkauth = require("../Middleware/Check-auth");
 const { check } = require("express-validator");
 
 const UserControllers = require("../Controllers/UserControllers");
@@ -15,7 +15,7 @@ router.post(
   [
     check("name").not().isEmpty(),
     check("firstName").not().isEmpty(),
-    check("email").normalizeEmail().isEmail(),
+    check("email").toLowerCase().isEmail(),
     check("password").isLength({ min: 6 }),
     check("bio").isLength({ max: 50 }),
     check("status").isIn(["public", "private"]),
@@ -28,6 +28,7 @@ router.get("/:pid/image", UserControllers.getImgUserId);
 
 router.use(checkauth);
 router.get("/alluser/right", UserControllers.getrAllUsers);
+router.get("/master/deletedata", UserControllers.deletedata);
 router.patch("/:pid", UserControllers.updateUser);
 
 module.exports = router;
