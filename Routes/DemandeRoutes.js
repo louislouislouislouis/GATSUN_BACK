@@ -9,11 +9,14 @@ router.use(checkauth);
 router.get("", DemandesControllers.getdemandbyuserId);
 router.patch("", DemandesControllers.acceptordenydemand);
 router.patch("/validate", DemandesControllers.validatepayment);
+router.patch("/validatekeys", DemandesControllers.validatekeys);
+
 router.get("/all", DemandesControllers.getdemandalldemandmaster);
 router.get(
   "/allpayment",
   DemandesControllers.getdemandalldemandmasterpaimentwaitngs
 );
+router.get("/allkeys", DemandesControllers.getdemandalldemandmasterkeys);
 
 router.post(
   "/new",

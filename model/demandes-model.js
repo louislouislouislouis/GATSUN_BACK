@@ -18,8 +18,6 @@ const demandeSchema = new Schema({
   paymentmethod: {
     type: String,
     enum: ["cb", "cash"],
-    default: "cash",
-    required: true,
   },
   status: { type: String, required: true },
 });
