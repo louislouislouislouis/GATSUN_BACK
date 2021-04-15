@@ -15,7 +15,6 @@ const userSchema = new Schema({
   role: {
     type: String,
     enum: ["NC", "C-VA", "C-NVA", "responsable", "bureau", "Master"],
-    default: "usr",
   },
   image: { type: String, required: true },
   status: { type: String, enum: ["public", "private"] },

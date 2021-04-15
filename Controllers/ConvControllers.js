@@ -1,8 +1,8 @@
 const HttpError = require("../model/http-err");
-const { v4: uuidv4 } = require("uuid");
 const Conv = require("../model/conv-model");
 const User = require("../model/user-model");
 const Mongoose = require("mongoose");
+const mailmanager = require("../MailModel/mailmanager");
 
 const postmsg = async (req, res, next) => {
   console.log("Un message vient d'être posté");

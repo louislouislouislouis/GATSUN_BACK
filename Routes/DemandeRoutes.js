@@ -9,7 +9,11 @@ router.use(checkauth);
 router.get("", DemandesControllers.getdemandbyuserId);
 router.patch("", DemandesControllers.acceptordenydemand);
 router.patch("/validate", DemandesControllers.validatepayment);
-router.patch("/validatekeys", DemandesControllers.validatekeys);
+router.patch(
+  "/validatekeys",
+  [check("result").isBoolean()],
+  DemandesControllers.validatekeys
+);
 
 router.get("/all", DemandesControllers.getdemandalldemandmaster);
 router.get(
@@ -39,6 +43,7 @@ router.post(
       }
       return true;
     }),
+    check("type").isIn(["private", "public"]),
     check("paymentmethod").isIn(["cb", "cash"]),
     check("message").not().isEmpty(),
   ],

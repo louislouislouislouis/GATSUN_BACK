@@ -226,9 +226,8 @@ const getpayment = async (req, res, next) => {
               try {
                 await demandtoadapt.save();
                 changment = true;
-                console.log("juste avant " + changment);
               } catch (err) {
-                const error = new HttpError("somethffing wrong", 500);
+                const error = new HttpError("somethffing wrong in demand", 500);
                 return next(error);
               }
             }
