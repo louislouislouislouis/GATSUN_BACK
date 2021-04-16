@@ -7,7 +7,20 @@ const { check } = require("express-validator");
 const DemandesControllers = require("../Controllers/DemandesControllers");
 router.use(checkauth);
 router.get("", DemandesControllers.getdemandbyuserId);
-router.patch("", DemandesControllers.acceptordenydemand);
+router.patch(
+  "",
+  [
+    check("result").isBoolean(),
+    check("message").not().isEmpty(),
+    check("date")
+      .isAfter(new Date(new Date().setHours(0, 0, 0, 0)).toDateString())
+      .isBefore(
+        new Date(new Date().setDate(new Date().getDate() + 1)).toDateString()
+      )
+      .withMessage("Asked Date impossible"),
+  ],
+  DemandesControllers.acceptordenydemand
+);
 router.patch("/validate", DemandesControllers.validatepayment);
 router.patch(
   "/validatekeys",

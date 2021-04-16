@@ -1,4 +1,3 @@
-const nodemailer = require("nodemailer");
 const { validationResult } = require("express-validator");
 const Mongoose = require("mongoose");
 
@@ -103,7 +102,7 @@ const newdemand = async (req, res, next) => {
       type === "private"
         ? "Waiting for validation"
         : key
-        ? "Public validate"
+        ? "Public - Confirmed"
         : "Waiting for keys",
     ownerdenomination: `${user1.firstname} ${user1.name}`,
     emaildemandeur: user1.email,
@@ -157,115 +156,23 @@ const newdemand = async (req, res, next) => {
   let mailaenvoyer = [];
   if (type === "private") {
     try {
-      useraavertir = await User.find({
-        $or: [{ role: "responsable" }, { role: "bureau" }, { role: "Master" }],
-      });
-      useraavertir.forEach((user) => {
-        mailaenvoyer.push({
-          destinataire: user.email,
-          objet: `DEMANDE DE SESSION PRIVÉE ${newDemand._id}`,
-          text: `<div style="background-color:white">
-          <p style="color: black">
-          Bonjour ${user.firstname} ${user.name},
-          <br>
-          Il y a ${user1.firstname} ${user1.name} qui aimerait faire une session privée
-          <br>
-          <b>INFO SESSION</b>:
-          <br>
-          <br>
-          SESSION-ID: ${newDemand._id}
-          <br>
-          DEMANDEUR: ${user1.firstname} ${user1.name}
-          <br>
-          DATE DE DEBUT: ${newDemand.askedDatebeg}
-          <br>
-          DUREE: ${time}H
-          <br>
-          MESSAGE: ${newDemand.body}
-          <br>
-          MODE DE PAIEMENT: ${newDemand.paymentmethod}
-          <br>
-          <br>
-          <br>
-          Message envoyée à ${user.email} en vue de son role de ${user.role} chez gatsun
-          </p><
-          </div>
-          `,
-        });
-      });
+      await mymailmanager.sendmailpourdemandesessionpriv(newDemand);
     } catch (err) {
-      const error = new HttpError("Error with our DB at user", 500);
-      return next(error);
+      return next(err);
     }
   } else if (type === "public") {
     if (key) {
-      useraavertir = await User.find({});
-      useraavertir.forEach((user) => {
-        mailaenvoyer.push({
-          destinataire: user.email,
-          objet: `Nouvelle Session Public !`,
-          text: `<div style="background-color:white">
-          <p style="color: black">
-          Bonjour ${user.firstname} ${user.name},
-          <br>
-          Il y a ${user1.firstname} ${user1.name} qui organise une session public au stud!
-          <br>
-          <b>INFO SESSION</b>:
-          <br>
-          <br>
-          SESSION-ID: ${newDemand._id}
-          <br>
-          ORGANISATEUR: ${user1.firstname} ${user1.name}
-          <br>
-          DATE DE DEBUT: ${newDemand.askedDatebeg}
-          <br>
-          DUREE: ${time}H
-          <br>
-          MESSAGE: ${newDemand.body}
-          <br>
-          <br>
-          <br>
-          Message envoyée à ${user.email}, incrit sur le GATWEB
-          </p><
-          </div>
-          `,
-        });
-      });
+      try {
+        mymailmanager.sendmailpoursessionpublicattlemonde(newDemand);
+      } catch (err) {
+        return next(err);
+      }
     } else {
-      useraavertir = await User.find({
-        $or: [{ role: "responsable" }, { role: "bureau" }, { role: "Master" }],
-      });
-      useraavertir.forEach((user) => {
-        mailaenvoyer.push({
-          destinataire: user.email,
-          objet: `DEMANDE DE CLEFS !`,
-          text: `<div style="background-color:white">
-          <p style="color: black">
-          Bonjour ${user.firstname} ${user.name},
-          <br>
-          Il y a ${user1.firstname} ${user1.name} qui aurait besoin des clefs pour organiser une session public au stud
-          <br>
-          <b>INFO SESSION</b>:
-          <br>
-          <br>
-          SESSION-ID: ${newDemand._id}
-          <br>
-          ORGANISATEUR: ${user1.firstname} ${user1.name}
-          <br>
-          DATE DE DEBUT: ${newDemand.askedDatebeg}
-          <br>
-          DUREE: ${time}H
-          <br>
-          MESSAGE: ${newDemand.body}
-          <br>
-          <br>
-          <br>
-          Message envoyée à ${user.email} en vue de son role de ${user.role} chez gatsun
-          </p><
-          </div>
-          `,
-        });
-      });
+      try {
+        mymailmanager.sendmailpourdemandedeclefs(newDemand);
+      } catch (err) {
+        return next(err);
+      }
     }
   }
 
@@ -423,45 +330,10 @@ const validatekeys = async (req, res, next) => {
 
     //here all is save in DB - time to inform user with mail
     const mymailmanager = new mailmanager();
-    let mailaenvoyer = [];
     try {
-      allusers = await User.find({});
-      allusers.forEach((user) => {
-        mailaenvoyer.push({
-          destinataire: user.email,
-          objet: `Nouvelle Session Public !`,
-          text: `<div style="background-color:white">
-          <p style="color: black">
-          Bonjour ${user.firstname} ${user.name},
-          <br>
-          Il y a ${usermaster.firstname} ${usermaster.name} qui organise une session public au stud!
-          <br>
-          <b>INFO SESSION</b>:
-          <br>
-          <br>
-          SESSION-ID: ${demandbd._id}
-          <br>
-          ORGANISATEUR: ${usermaster.firstname} ${usermaster.name}
-          <br>
-          DATE DE DEBUT: ${demandbd.askedDatebeg}
-          <br>
-          DUREE: ${time}H
-          <br>
-          MESSAGE: ${demandbd.body}
-          <br>
-          <br>
-          <br>
-          Message envoyée à ${user.email}, incrit sur le GATWEB
-          </p><
-          </div>
-          `,
-        });
-      });
-      mymailmanager.sendMail(mailaenvoyer);
+      mymailmanager.sendmailpoursessionpublicattlemonde(demandbd);
     } catch (err) {
-      console.log(err);
-      const error = new HttpError("Prbl in User", 500);
-      return next(error);
+      return next(err);
     }
   } else {
     //acyualise demand db and save it
@@ -559,23 +431,29 @@ const getdemandalldemandmasterpaimentwaitngs = async (req, res, next) => {
 
 const acceptordenydemand = async (req, res, next) => {
   console.log(req.userData.userId);
+  //Recuperer l'utilisateur en vérifiant son role
   let usermaster;
   try {
-    usermaster = await User.findById(req.userData.userId);
+    usermaster = await util.checkrole(
+      ["responsable", "bureau", "Master"],
+      req.userData.userId
+    );
   } catch (err) {
-    const error = new HttpError("Error with our DB at User", 500);
-    return next(error);
+    console.log(err);
+    return next(err);
   }
-  if (
-    usermaster.role !== "responsable" &&
-    usermaster.role !== "bureau" &&
-    usermaster.role !== "Master"
-  ) {
-    const error = new HttpError("You are not allowed to do this", 403);
-    return next(error);
+
+  //validation de la demande en entrée
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    console.log(errors);
+    return next(new HttpError("Error input", 422));
   }
+
+  //recup data from body
   const { demand, result, date, message } = req.body;
 
+  //check in DB
   let demandbd;
   try {
     demandbd = await Demand.findById(demand);
@@ -583,6 +461,8 @@ const acceptordenydemand = async (req, res, next) => {
     const error = new HttpError("Error with our DB at demand", 500);
     return next(error);
   }
+
+  //sanity validation for demand DB
   if (!demandbd) {
     const error = new HttpError("Error non demanddb", 404);
     return next(error);
@@ -595,102 +475,51 @@ const acceptordenydemand = async (req, res, next) => {
     return next(error);
   }
 
-  let userconcern;
-  try {
-    userconcern = await User.findById(demandbd.from);
-  } catch (err) {
-    const error = new HttpError("Error with our DB at user", 500);
-    return next(error);
-  }
-  console.log(userconcern);
-  if (!userconcern) {
-    const error = new HttpError("Error", 404);
-    return next(error);
-  }
-
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.MAIL,
-      pass: process.env.MAILMDP,
-    },
-  });
-
+  //preparer les mails
+  const mymailmanager = new mailmanager();
   demandbd.validateby = req.userData.userId;
   demandbd.feedbackdate = date;
 
   if (result) {
+    //only if we validate data
     if (demandbd.paymentmethod === "cash") {
+      //uniquement si la demande est en cash
       demandbd.dateofclose = date;
       demandbd.status = "Confirmed - Cash";
     } else {
+      //uniquement si la est en cb
       demandbd.status = "En attente de paiement";
-      const time =
-        -(
-          new Date(demandbd.askedDatebeg).getTime() -
-          new Date(demandbd.askedDateend).getTime()
-        ) / 3600000;
-      let link;
-      if (time === 1) {
-        link =
-          "https://www.helloasso.com/associations/gatsun/evenements/session-privee-1h";
-      } else if (time === 2) {
-        link =
-          "https://www.helloasso.com/associations/gatsun/evenements/session-privee-2h";
-      } else if (time === 3) {
-        link =
-          "https://www.helloasso.com/associations/gatsun/evenements/session-privee-1h-1";
-      } else if (time === 4) {
-        link =
-          "https://www.helloasso.com/associations/gatsun/evenements/session-privee-4h";
-      } else if (time === 5 || time === 6) {
-        link =
-          "https://www.helloasso.com/associations/gatsun/evenements/session-privee-5h-et-plus";
-      }
-      const mailOptions = {
-        from: process.env.MAIL,
-        to: userconcern.email,
-        subject: `LIEN DE PAIMENT`,
-        html: `<div style="background-color:white"><h1 style="color: blue">DEMANDE DE SESSION PRIVÉE.</h1> 
-        <p style="color: black">Bonjour ${userconcern.firstname} ${userconcern.name} voila le lien pour payer <br>${link}<br><b>INFO SESSION</b>:<br> <br>SESSION-ID: ${demandbd._id} <br>DEMANDEUR: ${userconcern.firstname} ${userconcern.name}<br>DATE DE DEBUT: ${demandbd.askedDatebeg}<br>DUREE: ${time}H<br>MESSAGE: ${demandbd.body}H<br>MODE DE PAIEMENT: ${demandbd.paymentmethod}<br><br><br></p></div>
-        `,
-      };
-      transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-          console.log(error);
-          const error = new HttpError(
-            "Il y a eu une demande dans l'envoie des mails, contacter l'équipe gatsun au plus vite",
-            500
-          );
-          return next(error);
-        } else {
-          console.log("Email sent: " + info.response);
-        }
+
+      //Envoyer le mail
+      mymailmanager.sendmailpourdemanderpaiement(demandbd);
+
+      //creer une occupationd du studio
+      const newoccup = new Occupation({
+        dateend: demandbd.askedDateend,
+        datebegin: demandbd.askedDatebeg,
       });
+
+      //enregister dans la DB et en plus l'occup
+      try {
+        const sess = await Mongoose.startSession();
+        sess.startTransaction();
+        await demandbd.save({ session: sess });
+        await newoccup.save({ session: sess });
+        await sess.commitTransaction();
+      } catch (err) {
+        console.log(err);
+        const error = new HttpError("cannnnnot add demand", 500);
+        return next(error);
+      }
     }
   } else {
+    //only if on refuse la session
     demandbd.feedback = message;
     demandbd.status = "Refusé";
     demandbd.dateofclose = date;
     demandbd.feedbackdate = date;
-  }
-  const newoccup = new Occupation({
-    dateend: demandbd.askedDateend,
-    datebegin: demandbd.askedDatebeg,
-  });
-  if (result) {
-    try {
-      const sess = await Mongoose.startSession();
-      sess.startTransaction();
-      await demandbd.save({ session: sess });
-      await newoccup.save({ session: sess });
-      await sess.commitTransaction();
-    } catch (err) {
-      console.log(err);
-      const error = new HttpError("cannnnnot add demand", 500);
-      return next(error);
-    }
-  } else {
+
+    //enregister dasn la DB
     try {
       await demandbd.save();
     } catch (err) {
@@ -699,7 +528,7 @@ const acceptordenydemand = async (req, res, next) => {
       return next(error);
     }
   }
-
+  //fiannly send response
   res.status(201).json({ message: "Success" });
 };
 
