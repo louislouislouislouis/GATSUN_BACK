@@ -16,7 +16,7 @@ const signup = async (req, res, next) => {
     return next(new HttpError("Error input", 422));
   }
 
-  const {
+  let {
     name,
     firstName,
     bio,
@@ -51,7 +51,10 @@ const signup = async (req, res, next) => {
     const error = new HttpError("Couldf not create user please try again", 500);
     return next(error);
   }
-
+  if (image === "") {
+    image =
+      "https://cdn4.iconfinder.com/data/icons/small-n-flat/24/user-alt-512.png";
+  }
   //creation du nouvel user
   const newUser = new User({
     name: name,
@@ -231,6 +234,7 @@ const login = async (req, res, next) => {
     email: existinguser.email,
     token: token,
     UserImg: existinguser.image,
+    role: existinguser.role,
   });
 };
 

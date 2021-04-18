@@ -185,13 +185,17 @@ const newdemand = async (req, res, next) => {
 
 const getdemandbyuserId = async (req, res, next) => {
   let demanduser;
+
   try {
-    demanduser = await Demand.find({ from: req.userData.userId });
+    demanduser = await Demand.find({ from: req.userData.userId }, "-__v");
   } catch (err) {
     const error = new HttpError("Error with our DB at demand", 500);
     return next(error);
   }
-  res.status(201).json({ demanduser });
+
+  res.status(201).json({
+    demanduser,
+  });
 };
 
 const validatepayment = async (req, res, next) => {
@@ -233,19 +237,9 @@ const validatepayment = async (req, res, next) => {
   demandbd.status = "Confirmed - CB payed";
   demandbd.dateofclose = new Date();
 
-  //create an occupation for the stud
-  const newoccup = new Occupation({
-    dateend: demandbd.askedDateend,
-    datebegin: demandbd.askedDatebeg,
-  });
-
   //save in db the new state of demand AND occupation of stud
   try {
-    const sess = await Mongoose.startSession();
-    sess.startTransaction();
-    await demandbd.save({ session: sess });
-    await newoccup.save({ session: sess });
-    await sess.commitTransaction();
+    await demandbd.save();
   } catch (err) {
     console.log(err);
     const error = new HttpError("cannnnnot add demand", 500);
@@ -367,7 +361,7 @@ const getdemandalldemandmasterkeys = async (req, res, next) => {
   //get alldemand waitings for keys
   let alldemand;
   try {
-    alldemand = await Demand.find({ status: "Waiting for keys" });
+    alldemand = await Demand.find({ status: "Waiting for keys" }, "-__v");
   } catch (err) {
     const error = new HttpError("Error with our DB at demand", 500);
     return next(error);
@@ -393,7 +387,7 @@ const getdemandalldemandmaster = async (req, res, next) => {
   //get alldemand waitings for validation
   let alldemand;
   try {
-    alldemand = await Demand.find({ status: "Waiting for validation" });
+    alldemand = await Demand.find({ status: "Waiting for validation" }, "-__v");
   } catch (err) {
     const error = new HttpError("Error with our DB at demand", 500);
     return next(error);
@@ -419,7 +413,7 @@ const getdemandalldemandmasterpaimentwaitngs = async (req, res, next) => {
   //get alldemand waitings for payment
   let alldemand;
   try {
-    alldemand = await Demand.find({ status: "En attente de paiement" });
+    alldemand = await Demand.find({ status: "En attente de paiement" }, "-__v");
   } catch (err) {
     const error = new HttpError("Error with our DB at demand", 500);
     return next(error);
@@ -452,7 +446,7 @@ const acceptordenydemand = async (req, res, next) => {
 
   //recup data from body
   const { demand, result, date, message } = req.body;
-
+  console.log(demand, result, date, message);
   //check in DB
   let demandbd;
   try {
