@@ -249,5 +249,9 @@ const getpayment = async (req, res, next) => {
     return next(error);
   }
 };
-
+const notif = async (req, res, next) => {
+  console.log(req);
+  res.status(201).json(req.body);
+};
 exports.getpayment = getpayment;
+exports.notif = notif;
