@@ -2,6 +2,7 @@ const HttpError = require("../model/http-err");
 const axios = require("axios");
 const User = require("../model/user-model");
 const Demand = require("../model/demandes-model");
+const mailmanager = require("../MailModel/mailmanager");
 
 /* ... */
 const fake = [
@@ -250,7 +251,9 @@ const getpayment = async (req, res, next) => {
   }
 };
 const notif = async (req, res, next) => {
-  console.log(req);
+  console.log(JSON.stringify(req.body, null, 2));
+  const mymailmanager = new mailmanager();
+  mymailmanager.sendmailpourrecevoirpaiement(JSON.stringify(req.body, null, 2));
   res.status(201).json(req.body);
 };
 exports.getpayment = getpayment;

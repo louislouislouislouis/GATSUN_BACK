@@ -2,7 +2,7 @@ const nodemailer = require("nodemailer");
 const User = require("../model/user-model");
 const HttpError = require("../model/http-err");
 
-class SSEManager {
+class MailManager {
   constructor() {
     /* On garde une liste de tous les clients connectés */
 
@@ -264,6 +264,43 @@ class SSEManager {
       }
     });
   }
+  async sendmailpourrecevoirpaiement(myobj) {
+    let useraavertir;
+    try {
+      useraavertir = await User.find({
+        $or: [{ role: "responsable" }, { role: "bureau" }, { role: "Master" }],
+      });
+    } catch (err) {
+      throw err;
+    }
+    useraavertir.forEach((user) => {
+      const mailOptions = {
+        from: process.env.MAIL,
+        to: user.email,
+        subject: `Confirmation session privée!`,
+        html: `<div style="background-color:white">
+          <p style="color: black">
+          <br>
+          <br>
+          <br>
+          ${myobj}
+          <br>
+          <br>
+          <br>
+          </p>
+          </div>
+          `,
+      };
+      this.transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.log(error);
+          throw error;
+        } else {
+          console.log("Email sent: " + info.response);
+        }
+      });
+    });
+  }
 }
 
-module.exports = SSEManager;
+module.exports = MailManager;
