@@ -246,6 +246,17 @@ const validatepayment = async (req, res, next) => {
     return next(error);
   }
 
+  //send mail
+  const mymailmanager = new mailmanager();
+  try {
+    mymailmanager.sendmailpourvalidationalamain(
+      demandbd,
+      `${usermaster.firstname} ${usermaster.name} `
+    );
+  } catch (err) {
+    return next(err);
+  }
+
   //send rep
   res.status(201).json({ message: "Success" });
 };

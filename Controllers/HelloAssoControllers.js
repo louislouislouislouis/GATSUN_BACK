@@ -215,6 +215,7 @@ const getpayment = async (req, res, next) => {
           if (demandtimewearelookingfor === element.time) {
             //La date de payment est-elle bonne?
             console.log("le temps est bon");
+            console.log(demandtoadapt);
             if (
               new Date(datepayement).getTime() -
                 new Date(demandtoadapt.askingDate).getTime() >
@@ -239,9 +240,8 @@ const getpayment = async (req, res, next) => {
   });
 
   if (changment) {
-    res.status(201).json({
-      message: "Success",
-    });
+    const error = new HttpError("Ca a changééééé", 402);
+    return next(error);
   } else {
     const error = new HttpError(
       "La base de donnée a enregistré aucun changement",
@@ -251,10 +251,94 @@ const getpayment = async (req, res, next) => {
   }
 };
 const notif = async (req, res, next) => {
-  console.log(JSON.stringify(req.body, null, 2));
+  //console.log(JSON.stringify(req.body, null, 2));
+  let change = false;
+  //res.status(201).json(req.body);
+  if (req.body.eventType === "Order") {
+    //recup data of payer
+    const email = req.body.data.payer.email.toLowerCase();
+    const date = new Date(req.body.data.date);
+    const formslug = req.body.data.formSlug;
+    if (req.body.data.items[0].isCanceled === true) {
+      const error = new HttpError("Le paiment a été annulé", 401);
+      return next(error);
+    }
+    //recuperer les demandes en attentes du paiment de l'utilisateur
+    let mydemand;
+    try {
+      mydemand = await Demand.findOne({
+        status: "En attente de paiement",
+        emaildemandeur: email,
+      });
+    } catch (err) {
+      const error = new HttpError("Error with our DB at demand", 500);
+      return next(error);
+    }
+    //check that there is a demand waitings
+    if (!mydemand) {
+      const error = new HttpError(
+        "There is not user waitings for that demands",
+        402
+      );
+      return next(error);
+    }
+    console.log(mydemand);
+    //facilitate after
+    let time =
+      (new Date(mydemand.askedDateend).getTime() -
+        new Date(mydemand.askedDatebeg).getTime()) /
+      3600000;
+
+    //change time for 6 to 5
+    if (time === 6) {
+      time = 5;
+    }
+
+    //verification for payment date
+    if (new Date(mydemand.askingDate).getTime() < date) {
+      console.log("date après paimenent --good");
+      if (
+        (time === 1 && formslug !== "session-privee-1h") ||
+        (time === 2 && formslug !== "session-privee-2h") ||
+        (time === 3 && formslug !== "session-privee-1h-1") ||
+        (time === 4 && formslug !== "session-privee-4h") ||
+        (time === 5 && formslug !== "session-privee-5h-et-plus")
+      ) {
+        const error = new HttpError(
+          "There is not matchings between payment effective and type of waitings",
+          402
+        );
+        return next(error);
+      } else {
+        mydemand.status = "Confirmed - CB payed";
+        mydemand.dateofclose = new Date();
+
+        //save in db the new state of demand AND occupation of stud
+        try {
+          await mydemand.save();
+          change = true;
+        } catch (err) {
+          console.log(err);
+          const error = new HttpError("cannnnnot add demand", 500);
+          return next(error);
+        }
+        //send rep
+      }
+    } else {
+      const error = new HttpError("Bad payment date ", 403);
+      return next(error);
+    }
+  }
+
   const mymailmanager = new mailmanager();
-  mymailmanager.sendmailpourrecevoirpaiement(JSON.stringify(req.body, null, 2));
-  res.status(201).json(req.body);
+  mymailmanager.sendmailpourrecevoirpaiement(req.body);
+
+  if (change) {
+    res.status(201).json({ message: "Success" });
+  } else {
+    res.status(201).json(req.body);
+  }
 };
+
 exports.getpayment = getpayment;
 exports.notif = notif;

@@ -32,6 +32,64 @@ class MailManager {
       });
     });
   }
+  async sendmailpourvalidationalamain(demand, nomvalidateur) {
+    let useraavertir;
+    try {
+      useraavertir = await User.find({
+        $or: [{ role: "responsable" }, { role: "bureau" }, { role: "Master" }],
+      });
+      const time =
+        (new Date(demand.askedDateend).getTime() -
+          new Date(demand.askedDatebeg).getTime()) /
+        3600000;
+      useraavertir.forEach((user) => {
+        const mailOptions = {
+          from: process.env.MAIL,
+          to: user.email,
+          subject: `VALIDATION DE PAIEMENT ${demand._id}`,
+          html: `<div style="background-color:white">
+          <p style="color: black">
+          Bonjour ${user.firstname} ${user.name},
+          <br>
+          Il y a ${nomvalidateur} qui nous a validé une demande de paiement à propos de ${demand.ownerdenomination}
+          <br>
+          <b>INFO SESSION</b>:
+          <br>
+          <br>
+          SESSION-ID: ${demand._id}
+          <br>
+          DEMANDEUR: ${demand.ownerdenomination}
+          <br>
+          DATE DE DEBUT: ${demand.askedDatebeg}
+          <br>
+          DUREE: ${time}H
+          <br>
+          MESSAGE: ${demand.body}
+          <br>
+          MODE DE PAIEMENT: ${demand.paymentmethod}
+          <br>
+          <br>
+          <br>
+          Message envoyée à ${user.email} en vue de son role de ${user.role} chez gatsun
+          </p><
+          </div>
+          `,
+        };
+        this.transporter.sendMail(mailOptions, (error, info) => {
+          if (error) {
+            console.log(error);
+            throw error;
+          } else {
+            console.log("Email sent: " + info.response);
+          }
+        });
+      });
+    } catch (err) {
+      console.log(err);
+      const error = new HttpError("Error with our DB at user", 500);
+      throw error;
+    }
+  }
   async sendmailpourdemandesessionpriv(demand) {
     let useraavertir;
     try {
@@ -280,13 +338,26 @@ class MailManager {
         subject: `Confirmation session privée!`,
         html: `<div style="background-color:white">
           <p style="color: black">
+          Bonjour ${user.firstname} ${user.name},
+          <br>
+          Gatsun Records certifie le paiement de ${
+            myobj.data.payer.firstName
+          } ${myobj.data.payer.lastName}
           <br>
           <br>
           <br>
-          ${myobj}
           <br>
           <br>
           <br>
+          PLUS DE DETAILS:
+          ${JSON.stringify(myobj, null, 2)}
+          <br>
+          <br>
+          <br>
+          <br>
+          Message envoyée à ${user.email} en vue de son role de ${
+          user.role
+        } chez gatsun
           </p>
           </div>
           `,
