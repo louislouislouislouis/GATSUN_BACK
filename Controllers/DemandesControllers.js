@@ -152,7 +152,6 @@ const newdemand = async (req, res, next) => {
   //Ici tout à été sauvegarder dans la BD, il faut avertir les utilisateurs
   //mail à envoyer en cas de succès
   const mymailmanager = new mailmanager();
-  let useraavertir;
   let mailaenvoyer = [];
   if (type === "private") {
     try {
@@ -344,8 +343,10 @@ const validatekeys = async (req, res, next) => {
     //acyualise demand db and save it
     demandbd.status = "Public - Unconfirmed";
     demandbd.dateofclose = new Date();
+    const mymailmanager = new mailmanager();
     try {
       await demandbd.save();
+      mymailmanager.sendmailpourrefuserclefs(demandbd);
     } catch (err) {
       const error = new HttpError("Don' work in demand", 500);
       return next(error);
@@ -487,35 +488,35 @@ const acceptordenydemand = async (req, res, next) => {
 
   if (result) {
     //only if we validate data
+    //creer une occupationd du studio
+    const newoccup = new Occupation({
+      dateend: demandbd.askedDateend,
+      datebegin: demandbd.askedDatebeg,
+    });
     if (demandbd.paymentmethod === "cash") {
       //uniquement si la demande est en cash
       demandbd.dateofclose = date;
       demandbd.status = "Confirmed - Cash";
+      mymailmanager.sendmailpourvalidercashsession(demandbd);
+      console.log(demandbd);
     } else {
       //uniquement si la est en cb
       demandbd.status = "En attente de paiement";
 
       //Envoyer le mail
       mymailmanager.sendmailpourdemanderpaiement(demandbd);
-
-      //creer une occupationd du studio
-      const newoccup = new Occupation({
-        dateend: demandbd.askedDateend,
-        datebegin: demandbd.askedDatebeg,
-      });
-
-      //enregister dans la DB et en plus l'occup
-      try {
-        const sess = await Mongoose.startSession();
-        sess.startTransaction();
-        await demandbd.save({ session: sess });
-        await newoccup.save({ session: sess });
-        await sess.commitTransaction();
-      } catch (err) {
-        console.log(err);
-        const error = new HttpError("cannnnnot add demand", 500);
-        return next(error);
-      }
+    }
+    //enregister dans la DB et en plus l'occup
+    try {
+      const sess = await Mongoose.startSession();
+      sess.startTransaction();
+      await demandbd.save({ session: sess });
+      await newoccup.save({ session: sess });
+      await sess.commitTransaction();
+    } catch (err) {
+      console.log(err);
+      const error = new HttpError("cannnnnot add demand", 500);
+      return next(error);
     }
   } else {
     //only if on refuse la session
@@ -527,6 +528,7 @@ const acceptordenydemand = async (req, res, next) => {
     //enregister dasn la DB
     try {
       await demandbd.save();
+      mymailmanager.sendmailpourrefusersession(demandbd);
     } catch (err) {
       console.log(err);
       const error = new HttpError("cannnnnot add demand", 500);

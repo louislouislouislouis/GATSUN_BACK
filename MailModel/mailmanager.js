@@ -71,7 +71,7 @@ class MailManager {
           <br>
           <br>
           Message envoyée à ${user.email} en vue de son role de ${user.role} chez gatsun
-          </p><
+          </p>
           </div>
           `,
         };
@@ -305,6 +305,150 @@ class MailManager {
           MESSAGE: ${demand.body}
           <br>
           MODE DE PAIEMENT: ${demand.paymentmethod}
+          <br>
+          <br>
+          <br>
+          Message envoyée à ${demand.emaildemandeur}, incrit sur le GATWEB
+          </p><
+          </div>
+          `,
+    };
+    this.transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.log(error);
+        throw error;
+      } else {
+        console.log("Email sent: " + info.response);
+      }
+    });
+  }
+  sendmailpourrefuserclefs(demand) {
+    const time =
+      (new Date(demand.askedDateend).getTime() -
+        new Date(demand.askedDatebeg).getTime()) /
+      3600000;
+
+    const mailOptions = {
+      from: process.env.MAIL,
+      to: demand.emaildemandeur,
+      subject: `Desolé...`,
+      html: `<div style="background-color:white">
+          <p style="color: black">
+          Bonjour ${demand.ownerdenomination}. Nous sommes désolé de t'informer que nous ne pouvons te donner les clefs. Sorry.
+          <br>
+           
+          <br>
+          <b>INFO SESSION</b>:
+          <br>
+          <br>
+          SESSION-ID: ${demand._id}
+          <br>
+          ORGANISATEUR: ${demand.ownerdenomination}
+          <br>
+          DATE DE DEBUT: ${demand.askedDatebeg}
+          <br>
+          DUREE: ${time}H
+          <br>
+          MESSAGE: ${demand.body}
+          <br>
+          <br>
+          <br>
+          Message envoyée à ${demand.emaildemandeur}, incrit sur le GATWEB
+          </p><
+          </div>
+          `,
+    };
+    this.transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.log(error);
+        throw error;
+      } else {
+        console.log("Email sent: " + info.response);
+      }
+    });
+  }
+  sendmailpourvalidercashsession(demand) {
+    const time =
+      (new Date(demand.askedDateend).getTime() -
+        new Date(demand.askedDatebeg).getTime()) /
+      3600000;
+    let euro;
+    if (time === 1) {
+      euro = "5";
+    } else if (time === 2) {
+      euro = "10";
+    } else if (time === 3) {
+      euro = "15";
+    } else if (time === 4 || time === 5 || time === 6) {
+      euro = "20";
+    }
+    const mailOptions = {
+      from: process.env.MAIL,
+      to: demand.emaildemandeur,
+      subject: `Session Validée!`,
+      html: `<div style="background-color:white">
+          <p style="color: black">
+          Bonjour ${demand.ownerdenomination} Ta sessions a été validé. On se retrouve au stud bientôt. N'oublie pas d'amener ${euro}€
+          <br>
+           
+          <br>
+          <b>INFO SESSION</b>:
+          <br>
+          <br>
+          SESSION-ID: ${demand._id}
+          <br>
+          ORGANISATEUR: ${demand.ownerdenomination}
+          <br>
+          DATE DE DEBUT: ${demand.askedDatebeg}
+          <br>
+          DUREE: ${time}H
+          <br>
+          MESSAGE: ${demand.body}
+          <br>
+          <br>
+          <br>
+          Message envoyée à ${demand.emaildemandeur}, incrit sur le GATWEB
+          </p><
+          </div>
+          `,
+    };
+    this.transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.log(error);
+        throw error;
+      } else {
+        console.log("Email sent: " + info.response);
+      }
+    });
+  }
+  sendmailpourrefusersession(demand) {
+    const time =
+      (new Date(demand.askedDateend).getTime() -
+        new Date(demand.askedDatebeg).getTime()) /
+      3600000;
+
+    const mailOptions = {
+      from: process.env.MAIL,
+      to: demand.emaildemandeur,
+      subject: `Desolé...`,
+      html: `<div style="background-color:white">
+          <p style="color: black">
+          Bonjour ${demand.ownerdenomination} Ta session a été refusée... En voici la raison: ${demand.feedback}
+          <br>
+          <br>
+          <br>
+          <b>INFO SESSION</b>:
+          <br>
+          <br>
+          SESSION-ID: ${demand._id}
+          <br>
+          ORGANISATEUR: ${demand.ownerdenomination}
+          <br>
+          DATE DE DEBUT: ${demand.askedDatebeg}
+          <br>
+          DUREE: ${time}H
+          <br>
+          MESSAGE: ${demand.body}
           <br>
           <br>
           <br>

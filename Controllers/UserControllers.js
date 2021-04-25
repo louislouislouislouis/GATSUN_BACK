@@ -94,12 +94,12 @@ const signup = async (req, res, next) => {
     const error = new HttpError("login up failed, please try again later", 500);
     return next(error);
   }
-
   res.status(201).json({
     userId: newUser.id,
     email: newUser.email,
-    UserImg: newUser.UserImg,
     token: token,
+    UserImg: newUser.image,
+    role: newUser.role,
   });
 };
 
